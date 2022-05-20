@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cert-deployer.chenhe.me/config.schema.json",
+  "type": "object",
+  "properties": {
+    "log": {
+      "description": "Configuration of log output.",
+      "type": "object",
+      "properties": {
+        "enable-file": {
+          "description": "Whether to export to a file.",
+          "type": "boolean",
+          "default": false
+        },
+        "file-dir": {
+          "description": "The directory where the log files are saved.",
+          "type": "string"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        }
+      }
+    },
+    "cloud-providers": {
+      "description": "Cloud service configuration.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "description": "The name of the cloud service provider, needs to be consistent with that defined in the code.",
+            "type": "string",
+            "enum": [
+              "TencentCloud"
+            ]
+          },
+          "secret-id": {
+            "type": "string"
+          },
+          "secret-key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "secret-id",
+          "secret-key"
+        ]
+      }
+    }
+  }
+}

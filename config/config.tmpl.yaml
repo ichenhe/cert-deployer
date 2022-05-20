@@ -1,0 +1,13 @@
+log:
+  # whether to export to a file
+  enable-file: false
+  # the directory where the log files are saved
+  file-dir: ./log
+  # debug / info / warn / error
+  level: info
+cloud-providers:
+# 'provider' must be in the support list
+
+#  - provider: TencentCloud
+#    secret-id: xxxxxxxxxxxxxxxxxxxxx
+#    secret-key: xxxxxxxxxxxxxxxxxxxxx

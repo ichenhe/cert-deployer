@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v[0-9]+*
+
+permissions:
+  contents: write
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set tag output
+        id: tag_out
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ^1.18
+      - name: Build
+        run: make
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          name: ${{ steps.tag_out.outputs.tag }}
+          path: bin
+          if-no-files-found: error
+
+      - name: releases-action
+        uses: softprops/action-gh-release@v1
+        with:
+          # https://github.com/actions/upload-release-asset
+          token: ${{ github.token }}
+          files: bin/*
+          draft: true

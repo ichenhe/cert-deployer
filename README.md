@@ -2,7 +2,7 @@
 
 This is not an ACME client and is recommended to be used with an ACME client that supports hooks. Of course, you can also use this tool alone.
 
-*[Disclaimer for Mainland China / 针对中国大陆的免责声明](#Disclaimer for Mainland China)*
+*[Disclaimer for Mainland China / 针对中国大陆的免责声明](#disclaimer-for-mainland-china)*
 
 ## Supported Cloud Provider
 

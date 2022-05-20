@@ -2,6 +2,8 @@
 
 This is not an ACME client and is recommended to be used with an ACME client that supports hooks. Of course, you can also use this tool alone.
 
+*[Disclaimer for Mainland China / 针对中国大陆的免责声明](#Disclaimer for Mainland China)*
+
 ## Supported Cloud Provider
 
 - Tencent Cloud (`TencentCloud`)
@@ -81,3 +83,10 @@ If you want to make some contributions to add more back-end support, in general,
 Congratulations 🥳
 
 > In case you need a new asset type, please add it to `asset/asset_type.go` if it is a generic type (e.g. cdn), otherwise you may want to define them in your package.
+
+## Disclaimer for Mainland China
+
+This is a statement for Chinese mainland only.
+
+坚持非必要不开源，推动大陆开源事业有序绿色发展，倒逼开源项目精品化。谨防恶意开源、恶意编程。本项目自愧不如，故仅在 GitHub 开源。任何人请勿 clone 到 Gitee 等大陆平台（无论是否公开）。我不保证代码里不会出现敏感字符串，例如 `freeSpace = make([]byte, 64, 128)`，以及一些有不良倾向的引导，例如 `go run helloworld.go`，故若您执意 clone 到大陆平台，您需要独自承担一切后果。
+

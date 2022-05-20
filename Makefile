@@ -18,6 +18,7 @@ B_LINUX=${BINARY}-linux
 B_WIN=${BINARY}-windows.exe
 
 default:
+	# outs dir should be synced with gh-actions:release
 	GOARCH=amd64 GOOS=darwin go build -o "bin/${B_MAC}"
 	GOARCH=amd64 GOOS=linux go build -o "bin/${B_LINUX}"
 	GOARCH=amd64 GOOS=windows go build -o "bin/${B_WIN}"

@@ -7,7 +7,6 @@ import (
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/deploy"
 	_ "github.com/ichenhe/cert-deployer/plugins"
-	"github.com/ichenhe/cert-deployer/search"
 	"github.com/ichenhe/cert-deployer/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -85,13 +84,12 @@ func main() {
 				types := c.StringSlice("type")
 
 				hasError := false
-				uniSearcher := search.NewUnionSearch(logger, appConfig.CloudProviders)
 				uniDeployer := deploy.NewUnionDeployer(logger, appConfig.CloudProviders)
 
 				logger.Infof("look for %d types of applicable assets: %v", len(types), types)
 				allAssets := make([]asset.Asseter, 0, 64)
 				for _, t := range types {
-					if assets, err := uniSearcher.ListApplicable(t, certData.data); err != nil {
+					if assets, err := uniDeployer.ListApplicableAssets(t, certData.data); err != nil {
 						hasError = true
 						logger.Errorf("failed to search assets for type '%s': %v", t, err)
 					} else {

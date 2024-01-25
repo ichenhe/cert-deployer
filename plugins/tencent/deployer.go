@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ichenhe/cert-deployer/asset"
 	"github.com/ichenhe/cert-deployer/deploy"
-	"github.com/ichenhe/cert-deployer/utils"
 	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -19,16 +18,15 @@ type deployer struct {
 }
 
 func init() {
-	deploy.MustRegister(Provider, func(options map[string]interface{}) (s deploy.Deployer, err error) {
-		defer func() {
-			if e, ok := recover().(error); ok {
-				err = e
-				s = nil
-			}
-		}()
-		secretId := utils.MustReadStringOption(options, "secretId")
-		secretKey := utils.MustReadStringOption(options, "secretKey")
-		logger := utils.MustReadOption[*zap.SugaredLogger](options, "logger")
+	deploy.MustRegister(Provider, func(options deploy.Options) (s deploy.Deployer, err error) {
+		defer deploy.RecoverFromInvalidOptionError(func(e *deploy.InvalidOptionError) {
+			err = e
+			s = nil
+		})
+
+		secretId := options.MustReadString("secretId")
+		secretKey := options.MustReadString("secretKey")
+		logger := options.MustReadLogger()
 		s = newTencentDeployer(secretId, secretKey, logger)
 		return
 	})

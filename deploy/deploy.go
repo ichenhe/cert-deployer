@@ -5,7 +5,7 @@ import (
 	"github.com/ichenhe/cert-deployer/asset"
 )
 
-type AssetDeployerConstructor = func(options map[string]interface{}) (Deployer, error)
+type AssetDeployerConstructor = func(options Options) (Deployer, error)
 
 var assetDeployerConstructors = make(map[string]AssetDeployerConstructor)
 

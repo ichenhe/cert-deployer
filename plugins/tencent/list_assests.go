@@ -3,60 +3,29 @@ package tencent
 import (
 	"encoding/base64"
 	"github.com/ichenhe/cert-deployer/asset"
-	"github.com/ichenhe/cert-deployer/search"
-	"github.com/ichenhe/cert-deployer/utils"
 	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 )
 
-type Search struct {
-	secretId  string
-	secretKey string
-}
-
-func init() {
-	search.MustRegister(Provider, func(options map[string]interface{}) (s search.AssetSearcher, err error) {
-		defer func() {
-			if e, ok := recover().(error); ok {
-				err = e
-				s = nil
-			}
-		}()
-		secretId := utils.MustReadStringOption(options, "secretId")
-		secretKey := utils.MustReadStringOption(options, "secretKey")
-		s = NewTencentSearch(secretId, secretKey)
-		return
-	})
-}
-
-// NewTencentSearch is a constructor that provide basic information for TencentSearch.
-func NewTencentSearch(secretId string, secretKey string) *Search {
-	return &Search{secretId: secretId, secretKey: secretKey}
-}
-
-func (s *Search) newCredential() *common.Credential {
-	return common.NewCredential(s.secretId, s.secretKey)
-}
-
-func (s *Search) List(assetType string) ([]asset.Asseter, error) {
+func (d *deployer) ListAssets(assetType string) ([]asset.Asseter, error) {
 	switch assetType {
 	case asset.TypeCdn:
-		return s.listCDNAssets()
+		return d.listCDNAssets()
 	}
 	return nil, nil
 }
 
-func (s *Search) ListApplicable(assetType string, cert []byte) ([]asset.Asseter, error) {
+func (d *deployer) ListApplicableAssets(assetType string, cert []byte) ([]asset.Asseter, error) {
 	switch assetType {
 	case asset.TypeCdn:
-		return s.listApplicableCDNAssets(cert)
+		return d.listApplicableCDNAssets(cert)
 	}
 	return nil, nil
 }
 
-func (s *Search) listCDNAssets() ([]asset.Asseter, error) {
-	client, err := cdn.NewClient(s.newCredential(), "", profile.NewClientProfile())
+func (d *deployer) listCDNAssets() ([]asset.Asseter, error) {
+	client, err := cdn.NewClient(d.newCredential(), "", profile.NewClientProfile())
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +50,8 @@ func (s *Search) listCDNAssets() ([]asset.Asseter, error) {
 	return assets, nil
 }
 
-func (s *Search) listApplicableCDNAssets(cert []byte) ([]asset.Asseter, error) {
-	client, err := cdn.NewClient(s.newCredential(), "", profile.NewClientProfile())
+func (d *deployer) listApplicableCDNAssets(cert []byte) ([]asset.Asseter, error) {
+	client, err := cdn.NewClient(d.newCredential(), "", profile.NewClientProfile())
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +63,7 @@ func (s *Search) listApplicableCDNAssets(cert []byte) ([]asset.Asseter, error) {
 		return nil, err
 	}
 
-	allCDNs, err := s.listCDNAssets()
+	allCDNs, err := d.listCDNAssets()
 	if err != nil {
 		return nil, err
 	}

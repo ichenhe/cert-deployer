@@ -3,6 +3,7 @@ package deploy
 import (
 	"github.com/ichenhe/cert-deployer/asset"
 	"github.com/ichenhe/cert-deployer/config"
+	"github.com/ichenhe/cert-deployer/utils"
 	"go.uber.org/zap"
 )
 
@@ -44,6 +45,45 @@ func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig []config.CloudP
 	}
 
 	return uniDeployer
+}
+
+// ListAssets calls each of registered deployer and return all the results.
+//
+// Note: Returning error does not mean that other return values are invalid.
+// It may just be some searcher execution failures.
+func (u *UnionDeployer) ListAssets(assetType string) ([]asset.Asseter, *utils.ErrorCollection) {
+	r := make([]asset.Asseter, 0, 64)
+	errs := make([]error, 0)
+	for _, v := range u.deployers {
+		for _, searcher := range v {
+			if l, e := searcher.ListAssets(assetType); e != nil {
+				errs = append(errs, e)
+			} else {
+				r = append(r, l...)
+			}
+		}
+	}
+	return r, utils.NewErrorCollection(errs)
+}
+
+// ListApplicableAssets calls each of registered deployer and return all the results.
+//
+// Note: Returning error does not mean that other return values are invalid.
+// It may just be some searcher execution failures.
+func (u *UnionDeployer) ListApplicableAssets(assetType string, cert []byte) ([]asset.Asseter,
+	*utils.ErrorCollection) {
+	r := make([]asset.Asseter, 0, 64)
+	errs := make([]error, 0)
+	for _, v := range u.deployers {
+		for _, searcher := range v {
+			if l, e := searcher.ListApplicableAssets(assetType, cert); e != nil {
+				errs = append(errs, e)
+			} else {
+				r = append(r, l...)
+			}
+		}
+	}
+	return r, utils.NewErrorCollection(errs)
 }
 
 // Deploy calls each of registered deployer. All errors will be printed to logger with ERROR level.

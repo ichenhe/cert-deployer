@@ -5,17 +5,25 @@ import (
 	"github.com/ichenhe/cert-deployer/asset"
 )
 
-type AssetDeployerConstructor = func(options map[string]interface{}) (Deployer, error)
+type AssetDeployerConstructor = func(options Options) (Deployer, error)
 
 var assetDeployerConstructors = make(map[string]AssetDeployerConstructor)
 
 type Deployer interface {
+	// ListAssets fetches all assets that match the given type.
+	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
+	ListAssets(assetType string) ([]asset.Asseter, error)
+
+	// ListApplicableAssets fetch all assets that match the given type and cert.
+	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
+	ListApplicableAssets(assetType string, cert []byte) ([]asset.Asseter, error)
+
 	// Deploy the given pem cert to the all assets.
 	//
 	// Returns assets that were successfully deployed and errors. Please note that there is no
 	// guarantee that len(deployedAsseters)+len(deployErrs)=len(assets), because some minor
 	// problems do not count as errors, such as provider mismatch.
-	Deploy(assets []asset.Asseter, cert []byte, key []byte) (deployedAsseters []asset.Asseter,
+	Deploy(assets []asset.Asseter, cert []byte, key []byte) (deployedAssets []asset.Asseter,
 		deployErrs []*DeployError)
 }
 

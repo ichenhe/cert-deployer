@@ -16,14 +16,14 @@ type UnionDeployer struct {
 	deployers map[string][]Deployer
 }
 
-func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig []config.CloudProvider) *UnionDeployer {
+func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]config.CloudProvider) *UnionDeployer {
 	uniDeployer := &UnionDeployer{
 		logger:    logger,
 		deployers: make(map[string][]Deployer),
 	}
 
 	if providersConfig != nil && len(providersConfig) > 0 {
-		for i, conf := range providersConfig {
+		for name, conf := range providersConfig {
 			if constructor, ok := assetDeployerConstructors[conf.Provider]; ok {
 				options := map[string]interface{}{
 					"secretId":  conf.SecretId,
@@ -31,15 +31,15 @@ func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig []config.CloudP
 					"logger":    logger,
 				}
 				if searcher, err := constructor(options); err != nil {
-					logger.Errorf("failed to create asset deployer for provider '%s': %v, index=%d",
-						conf.Provider, err, i)
+					logger.Errorf("failed to create asset deployer for provider '%s': %v",
+						name, err)
 				} else {
 					uniDeployer.addDeployer(conf.Provider, searcher)
-					logger.Debugf("add asset deployer $%d for provider '%s'", i, conf.Provider)
+					logger.Debugf("add asset deployer for provider '%s'", conf.Provider)
 				}
 			} else {
-				logger.Errorf("can not find asset deployer constructor for provider '%s', index=%d",
-					conf.Provider, i)
+				logger.Errorf("can not find asset deployer constructor for provider '%s'",
+					name)
 			}
 		}
 	}

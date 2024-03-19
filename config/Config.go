@@ -8,8 +8,8 @@ import (
 )
 
 type AppConfig struct {
-	Log            Log             `yaml:"log"`
-	CloudProviders []CloudProvider `yaml:"cloud-providers"`
+	Log            Log                      `yaml:"log"`
+	CloudProviders map[string]CloudProvider `yaml:"cloud-providers"`
 }
 
 type Log struct {
@@ -29,7 +29,6 @@ func newDefaultAppConfig() *AppConfig {
 		Log: Log{
 			EnableFile: false,
 		},
-		CloudProviders: make([]CloudProvider, 0),
 	}
 }
 

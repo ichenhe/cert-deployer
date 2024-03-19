@@ -29,8 +29,8 @@
     },
     "cloud-providers": {
       "description": "Cloud service configuration.",
-      "type": "array",
-      "items": {
+      "type": "object",
+      "additionalProperties": {
         "type": "object",
         "properties": {
           "provider": {

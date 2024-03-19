@@ -5,9 +5,10 @@ log:
   file-dir: ./log
   # debug / info / warn / error
   level: info
-cloud-providers:
-# 'provider' must be in the support list
 
-#  - provider: TencentCloud
-#    secret-id: xxxxxxxxxxxxxxxxxxxxx
-#    secret-key: xxxxxxxxxxxxxxxxxxxxx
+cloud-providers:
+  example:
+    # 'provider' must be in the support list
+    provider: TencentCloud
+    secret-id: "xxxxxxxxxxxxxxxxxxxxx"
+    secret-key: "xxxxxxxxxxxxxxxxxxxxx"

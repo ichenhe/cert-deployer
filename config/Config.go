@@ -2,47 +2,41 @@ package config
 
 import (
 	"fmt"
-	"github.com/ichenhe/cert-deployer/utils"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 )
 
 type AppConfig struct {
-	Log            Log                      `yaml:"log"`
-	CloudProviders map[string]CloudProvider `yaml:"cloud-providers"`
+	Log            Log                      `koanf:"log"`
+	CloudProviders map[string]CloudProvider `koanf:"cloud-providers"`
 }
 
 type Log struct {
-	EnableFile bool   `yaml:"enable-file"`
-	FileDir    string `yaml:"file-dir"`
-	Level      string `yaml:"level"`
+	EnableFile bool   `koanf:"enable-file"`
+	FileDir    string `koanf:"file-dir"`
+	Level      string `koanf:"level"`
 }
 
 type CloudProvider struct {
-	Provider  string `yaml:"provider"`
-	SecretId  string `yaml:"secret-id"`
-	SecretKey string `yaml:"secret-key"`
-}
-
-func newDefaultAppConfig() *AppConfig {
-	return &AppConfig{
-		Log: Log{
-			EnableFile: false,
-		},
-	}
+	Provider  string `koanf:"provider"`
+	SecretId  string `koanf:"secret-id"`
+	SecretKey string `koanf:"secret-key"`
 }
 
 func ReadConfig(configFile string) (*AppConfig, error) {
-	if !utils.IsFile(configFile) {
-		return nil, fmt.Errorf("config file does not exist: %s", configFile)
+	var k = koanf.New(".")
+
+	// default config
+	_ = k.Set("log.enable-file", false)
+
+	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
-	data, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return nil, err
-	}
-	r := newDefaultAppConfig()
-	if err = yaml.Unmarshal(data, r); err != nil {
-		return nil, err
+
+	r := &AppConfig{}
+	if err := k.Unmarshal("", r); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 	return r, nil
 }

@@ -2,8 +2,6 @@
 
 This is not an ACME client and is recommended to be used with an ACME client that supports hooks. Of course, you can also use this tool alone.
 
-*[Disclaimer for Mainland China / 针对中国大陆的免责声明](#disclaimer-for-mainland-china)*
-
 ## Supported Cloud Provider
 
 - Tencent Cloud (`TencentCloud`)
@@ -75,9 +73,8 @@ If you want to make some contributions to add more back-end support, in general,
 
 1. Add a new package in `plugins/`.
 2. Add necessary data structures. You may probably want to define a const called `Provider` as the name of the back-end and id.
-3. Implement `search.AssetSearcher` and `deploy.Deployer`, and register them by calling `search.MustRegister()` or `deploy.MustRegister()`  in `init()` function.
+3. Implement `domain.Deployer`, and register it by calling `registry.MustRegister()` in `init()` function.
 4. Import your new plugin in `plugins/import.go`.
-
 5. Update the support list in this file.
 
 Congratulations 🥳

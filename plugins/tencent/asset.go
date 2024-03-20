@@ -1,10 +1,12 @@
 package tencent
 
-import "github.com/ichenhe/cert-deployer/asset"
+import (
+	"github.com/ichenhe/cert-deployer/domain"
+)
 
 const Provider = "TencentCloud"
 
 type CdnAsset struct {
-	asset.Asset
+	domain.Asset
 	Domain string
 }

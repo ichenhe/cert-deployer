@@ -3,8 +3,8 @@ package tencent
 import (
 	"errors"
 	"fmt"
-	"github.com/ichenhe/cert-deployer/asset"
-	"github.com/ichenhe/cert-deployer/deploy"
+	"github.com/ichenhe/cert-deployer/domain"
+	"github.com/ichenhe/cert-deployer/registry"
 	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -18,8 +18,8 @@ type deployer struct {
 }
 
 func init() {
-	deploy.MustRegister(Provider, func(options deploy.Options) (s deploy.Deployer, err error) {
-		defer deploy.RecoverFromInvalidOptionError(func(e *deploy.InvalidOptionError) {
+	registry.MustRegister(Provider, func(options domain.Options) (s domain.Deployer, err error) {
+		defer domain.RecoverFromInvalidOptionError(func(e *domain.InvalidOptionError) {
 			err = e
 			s = nil
 		})
@@ -32,7 +32,7 @@ func init() {
 	})
 }
 
-func newTencentDeployer(secretId string, secretKey string, logger *zap.SugaredLogger) deploy.Deployer {
+func newTencentDeployer(secretId string, secretKey string, logger *zap.SugaredLogger) domain.Deployer {
 	return &deployer{secretId: secretId, secretKey: secretKey, logger: logger}
 }
 
@@ -40,7 +40,7 @@ func (d *deployer) newCredential() *common.Credential {
 	return common.NewCredential(d.secretId, d.secretKey)
 }
 
-func (d *deployer) Deploy(assets []asset.Asseter, cert []byte, key []byte) (deployedAssets []asset.Asseter, deployErrs []*deploy.DeployError) {
+func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
 	for _, item := range assets {
 		info := item.GetBaseInfo()
 		if info.Provider != Provider {
@@ -53,12 +53,12 @@ func (d *deployer) Deploy(assets []asset.Asseter, cert []byte, key []byte) (depl
 		}
 
 		switch info.Type {
-		case asset.TypeCdn:
+		case domain.TypeCdn:
 			if cdnAsset, ok := item.(*CdnAsset); !ok {
-				deployErrs = append(deployErrs, deploy.NewDeployError(item,
+				deployErrs = append(deployErrs, domain.NewDeployError(item,
 					errors.New("can not convert asset to TencentCdnAsset")))
 			} else if err := d.deployCdnCert(cdnAsset, cert, key); err != nil {
-				deployErrs = append(deployErrs, deploy.NewDeployError(item, err))
+				deployErrs = append(deployErrs, domain.NewDeployError(item, err))
 			} else {
 				deployedAssets = append(deployedAssets, item)
 			}

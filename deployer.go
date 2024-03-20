@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ichenhe/cert-deployer/asset"
 	"github.com/ichenhe/cert-deployer/config"
-	"github.com/ichenhe/cert-deployer/deploy"
+	"github.com/ichenhe/cert-deployer/domain"
 	_ "github.com/ichenhe/cert-deployer/plugins"
+	"github.com/ichenhe/cert-deployer/registry"
 	"github.com/ichenhe/cert-deployer/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -81,13 +81,21 @@ func main() {
 
 				certData := c.Generic("cert").(*fileType)
 				keyData := c.Generic("key").(*fileType)
-				types := c.StringSlice("type")
+
+				types := make([]domain.AssetType, 0)
+				for _, str := range c.StringSlice("type") {
+					if t, err := domain.AssetTypeFromString(str); err == nil {
+						types = append(types, t)
+					} else {
+						logger.Infof("ignore invalid asset type '%s'", str)
+					}
+				}
 
 				hasError := false
-				uniDeployer := deploy.NewUnionDeployer(logger, appConfig.CloudProviders)
+				uniDeployer := registry.NewUnionDeployer(logger, appConfig.CloudProviders)
 
 				logger.Infof("look for %d types of applicable assets: %v", len(types), types)
-				allAssets := make([]asset.Asseter, 0, 64)
+				allAssets := make([]domain.Asseter, 0, 64)
 				for _, t := range types {
 					if assets, err := uniDeployer.ListApplicableAssets(t, certData.data); err != nil {
 						hasError = true
@@ -106,7 +114,7 @@ func main() {
 					hasError = true
 				} else {
 					logger.Infof("%d assets deployed successfully: %v", len(deployed),
-						utils.MapSlice(deployed, func(s asset.Asseter) string {
+						utils.MapSlice(deployed, func(s domain.Asseter) string {
 							i := s.GetBaseInfo()
 							return fmt.Sprintf("%s@%s-%s", i.Type, i.Provider, i.Name)
 						}))
@@ -127,7 +135,7 @@ func main() {
 	}
 }
 
-func readProfile(c *cli.Context) (*config.AppConfig, error) {
+func readProfile(c *cli.Context) (*domain.AppConfig, error) {
 	file := c.Path("profile")
 	appConfig, err := config.ReadConfig(file)
 	if err != nil {
@@ -136,7 +144,7 @@ func readProfile(c *cli.Context) (*config.AppConfig, error) {
 	return appConfig, nil
 }
 
-func setLogger(profile *config.AppConfig) {
+func setLogger(profile *domain.AppConfig) {
 	logConfig := profile.Log
 	logLevel := zapcore.InfoLevel
 	switch logConfig.Level {

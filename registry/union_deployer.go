@@ -1,9 +1,7 @@
-package deploy
+package registry
 
 import (
-	"github.com/ichenhe/cert-deployer/asset"
-	"github.com/ichenhe/cert-deployer/config"
-	"github.com/ichenhe/cert-deployer/utils"
+	"github.com/ichenhe/cert-deployer/domain"
 	"go.uber.org/zap"
 )
 
@@ -13,13 +11,13 @@ import (
 // The main program usually wants to use this structure to perform the operation.
 type UnionDeployer struct {
 	logger    *zap.SugaredLogger
-	deployers map[string][]Deployer
+	deployers map[string][]domain.Deployer
 }
 
-func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]config.CloudProvider) *UnionDeployer {
+func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]domain.CloudProvider) *UnionDeployer {
 	uniDeployer := &UnionDeployer{
 		logger:    logger,
-		deployers: make(map[string][]Deployer),
+		deployers: make(map[string][]domain.Deployer),
 	}
 
 	if providersConfig != nil && len(providersConfig) > 0 {
@@ -51,8 +49,8 @@ func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]conf
 //
 // Note: Returning error does not mean that other return values are invalid.
 // It may just be some searcher execution failures.
-func (u *UnionDeployer) ListAssets(assetType string) ([]asset.Asseter, *utils.ErrorCollection) {
-	r := make([]asset.Asseter, 0, 64)
+func (u *UnionDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter, *domain.ErrorCollection) {
+	r := make([]domain.Asseter, 0, 64)
 	errs := make([]error, 0)
 	for _, v := range u.deployers {
 		for _, searcher := range v {
@@ -63,16 +61,16 @@ func (u *UnionDeployer) ListAssets(assetType string) ([]asset.Asseter, *utils.Er
 			}
 		}
 	}
-	return r, utils.NewErrorCollection(errs)
+	return r, domain.NewErrorCollection(errs)
 }
 
 // ListApplicableAssets calls each of registered deployer and return all the results.
 //
 // Note: Returning error does not mean that other return values are invalid.
 // It may just be some searcher execution failures.
-func (u *UnionDeployer) ListApplicableAssets(assetType string, cert []byte) ([]asset.Asseter,
-	*utils.ErrorCollection) {
-	r := make([]asset.Asseter, 0, 64)
+func (u *UnionDeployer) ListApplicableAssets(assetType domain.AssetType, cert []byte) ([]domain.Asseter,
+	*domain.ErrorCollection) {
+	r := make([]domain.Asseter, 0, 64)
 	errs := make([]error, 0)
 	for _, v := range u.deployers {
 		for _, searcher := range v {
@@ -83,15 +81,15 @@ func (u *UnionDeployer) ListApplicableAssets(assetType string, cert []byte) ([]a
 			}
 		}
 	}
-	return r, utils.NewErrorCollection(errs)
+	return r, domain.NewErrorCollection(errs)
 }
 
 // Deploy calls each of registered deployer. All errors will be printed to logger with ERROR level.
-func (u *UnionDeployer) Deploy(assets []asset.Asseter, cert []byte,
-	key []byte) (deployedAsseters []asset.Asseter, hasError bool) {
+func (u *UnionDeployer) Deploy(assets []domain.Asseter, cert []byte,
+	key []byte) (deployedAsseters []domain.Asseter, hasError bool) {
 	for _, assetItem := range assets {
 		for _, deployer := range u.deployers[assetItem.GetBaseInfo().Provider] {
-			deployed, deployErrs := deployer.Deploy([]asset.Asseter{assetItem}, cert, key)
+			deployed, deployErrs := deployer.Deploy([]domain.Asseter{assetItem}, cert, key)
 			if deployed != nil {
 				deployedAsseters = append(deployedAsseters, deployed...)
 			}
@@ -106,10 +104,10 @@ func (u *UnionDeployer) Deploy(assets []asset.Asseter, cert []byte,
 	return
 }
 
-func (u *UnionDeployer) addDeployer(provider string, deployer Deployer) {
+func (u *UnionDeployer) addDeployer(provider string, deployer domain.Deployer) {
 	if searchers, ok := u.deployers[provider]; ok {
 		u.deployers[provider] = append(searchers, deployer)
 	} else {
-		u.deployers[provider] = []Deployer{deployer}
+		u.deployers[provider] = []domain.Deployer{deployer}
 	}
 }

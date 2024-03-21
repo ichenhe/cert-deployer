@@ -1,0 +1,19 @@
+with-expecter: true
+filename: "mock_{{.InterfaceName}}.go"
+dir: "mocker"
+outpkg: "mocker"
+all: false
+
+packages:
+  github.com/ichenhe/cert-deployer/domain:
+    config:
+      include-regex: ".*"
+      exclude-regex: ".*Func"
+  github.com/ichenhe/cert-deployer:
+    config:
+      dir: "{{.InterfaceDir}}"
+      outpkg: "{{.PackageName}}"
+      inpackage: True
+    interfaces:
+      assetDeployer: { }
+      commandExecutor: { }

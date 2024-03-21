@@ -8,19 +8,34 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
-func ReadConfig(configFile string) (*domain.AppConfig, error) {
-	var k = koanf.New(".")
-
-	// default config
+func createDefaultConfig() (k *koanf.Koanf) {
+	k = koanf.New(".")
 	_ = k.Set("log.enable-file", false)
+	return
+}
+
+func unmarshal(k *koanf.Koanf) (*domain.AppConfig, error) {
+	r := &domain.AppConfig{}
+	err := k.Unmarshal("", r)
+	return r, err
+}
+
+func DefaultConfig() *domain.AppConfig {
+	k := createDefaultConfig()
+	r, _ := unmarshal(k)
+	return r
+}
+
+func ReadConfig(configFile string) (*domain.AppConfig, error) {
+	var k = createDefaultConfig()
 
 	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	r := &domain.AppConfig{}
-	if err := k.Unmarshal("", r); err != nil {
+	if r, err := unmarshal(k); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
+	} else {
+		return r, nil
 	}
-	return r, nil
 }

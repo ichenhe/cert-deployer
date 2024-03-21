@@ -24,9 +24,14 @@ type Deployer interface {
 		deployErrs []*DeployError)
 }
 
+type DeployerFactory interface {
+	// NewDeployer creates a deployer corresponding to the given cloudProvider.
+	NewDeployer(logger *zap.SugaredLogger, cloudProvider CloudProvider) (Deployer, error)
+}
+
 type Options map[string]interface{}
 
-const keyLogger = "cert-deployer.logger"
+const OptionsKeyLogger = "cert-deployer.logger"
 
 // MustReadString reads a string value from options. See MustReadOption.
 func (o Options) MustReadString(key string) string {
@@ -35,7 +40,7 @@ func (o Options) MustReadString(key string) string {
 
 // MustReadLogger gets the logger from options. See MustReadOption.
 func (o Options) MustReadLogger() *zap.SugaredLogger {
-	return MustReadOption[*zap.SugaredLogger](o, keyLogger)
+	return MustReadOption[*zap.SugaredLogger](o, OptionsKeyLogger)
 }
 
 // MustReadOption reads a value from options. Panic with InvalidOptionError if key does not exist or

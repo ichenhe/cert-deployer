@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
 	_ "github.com/ichenhe/cert-deployer/plugins"
-	"github.com/ichenhe/cert-deployer/registry"
 	"github.com/ichenhe/cert-deployer/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -35,6 +33,24 @@ func init() {
 func main() {
 	defer func() { _ = logger.Sync() }()
 
+	defaultProfileLoader := func(c *cli.Context) (*domain.AppConfig, error) {
+		file := c.Path("profile")
+		appConfig, err := config.ReadConfig(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read profile: %w", err)
+		}
+		return appConfig, nil
+	}
+
+	err := run(os.Args, newCommandDispatcher(defaultProfileLoader, domain.FileReaderFunc(os.ReadFile), newCommandExecutor()))
+	if err != nil {
+		logger.Fatal(err)
+	}
+}
+
+type profileLoader = func(c *cli.Context) (*domain.AppConfig, error)
+
+func run(args []string, cmdDispatcher commandDispatcher) error {
 	app := &cli.App{
 		Name:  "cert-deployer",
 		Usage: "Deployer your https cert to various cloud services assets",
@@ -51,97 +67,35 @@ func main() {
 		{
 			Name: "deploy", Usage: "Deploy certs to cloud services",
 			Flags: []cli.Flag{
-				&cli.GenericFlag{
-					Name:     "cert",
-					Aliases:  []string{"c"},
-					Usage:    "full chain public key pem file",
-					Value:    &fileType{},
-					Required: true,
+				&cli.StringSliceFlag{
+					Name:     "deployment",
+					Aliases:  []string{"d"},
+					Usage:    "name(id) of deployments defined in the profile",
+					Required: false,
 				},
-				&cli.GenericFlag{
+				&cli.PathFlag{
+					Name:     "cert",
+					Usage:    "/path/to/fullchain.pem",
+					Required: false,
+					Category: "Custom:",
+				},
+				&cli.PathFlag{
 					Name:     "key",
-					Aliases:  []string{"k"},
-					Usage:    "private key pem file",
-					Value:    &fileType{},
-					Required: true,
+					Usage:    "/path/to/private.pem",
+					Required: false,
+					Category: "Custom:",
 				},
 				&cli.StringSliceFlag{
 					Name:     "type",
-					Aliases:  []string{"t"},
 					Usage:    "asset types, e.g. cdn",
-					Required: true,
+					Required: false,
+					Category: "Custom:",
 				},
 			},
-			Action: func(c *cli.Context) error {
-				appConfig, err := readProfile(c)
-				if err != nil {
-					return err
-				}
-				setLogger(appConfig)
-
-				certData := c.Generic("cert").(*fileType)
-				keyData := c.Generic("key").(*fileType)
-
-				types := make([]domain.AssetType, 0)
-				for _, str := range c.StringSlice("type") {
-					if t, err := domain.AssetTypeFromString(str); err == nil {
-						types = append(types, t)
-					} else {
-						logger.Infof("ignore invalid asset type '%s'", str)
-					}
-				}
-
-				hasError := false
-				uniDeployer := registry.NewUnionDeployer(logger, appConfig.CloudProviders)
-
-				logger.Infof("look for %d types of applicable assets: %v", len(types), types)
-				allAssets := make([]domain.Asseter, 0, 64)
-				for _, t := range types {
-					if assets, err := uniDeployer.ListApplicableAssets(t, certData.data); err != nil {
-						hasError = true
-						logger.Errorf("failed to search assets for type '%s': %v", t, err)
-					} else {
-						for _, item := range assets {
-							logger.Debugf(item.GetBaseInfo().String())
-						}
-						allAssets = append(allAssets, assets...)
-					}
-				}
-				logger.Infof("a total of %d assets were acquired, deploying...", len(allAssets))
-
-				deployed, hasDeployErr := uniDeployer.Deploy(allAssets, certData.data, keyData.data)
-				if hasDeployErr {
-					hasError = true
-				} else {
-					logger.Infof("%d assets deployed successfully: %v", len(deployed),
-						utils.MapSlice(deployed, func(s domain.Asseter) string {
-							i := s.GetBaseInfo()
-							return fmt.Sprintf("%s@%s-%s", i.Type, i.Provider, i.Name)
-						}))
-				}
-
-				if hasError {
-					return errors.New("some errors have occurred")
-				} else {
-					return nil
-				}
-			},
+			Action: cmdDispatcher.deploy,
 		},
 	}
-
-	err := app.Run(os.Args)
-	if err != nil {
-		logger.Fatal(err)
-	}
-}
-
-func readProfile(c *cli.Context) (*domain.AppConfig, error) {
-	file := c.Path("profile")
-	appConfig, err := config.ReadConfig(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read profile: %w", err)
-	}
-	return appConfig, nil
+	return app.Run(args)
 }
 
 func setLogger(profile *domain.AppConfig) {

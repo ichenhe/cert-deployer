@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
+	"go.uber.org/zap"
 )
 
 type AssetDeployerConstructor = func(options domain.Options) (domain.Deployer, error)
@@ -19,5 +20,32 @@ func MustRegister(provider string, deployerConstructor AssetDeployerConstructor)
 		panic(fmt.Errorf("[AssetDeployer] provider '%s' is already registered", provider))
 	} else {
 		assetDeployerConstructors[provider] = deployerConstructor
+	}
+}
+
+type defaultDeployerFactory struct {
+}
+
+func NewDeployerFactory() domain.DeployerFactory {
+	return &defaultDeployerFactory{}
+}
+
+// NewDeployer creates a deployer corresponding to the given cloudProvider.
+func (f *defaultDeployerFactory) NewDeployer(logger *zap.SugaredLogger, cloudProvider domain.CloudProvider) (domain.Deployer, error) {
+	var deployerConstructor AssetDeployerConstructor
+	if c, ok := assetDeployerConstructors[cloudProvider.Provider]; !ok {
+		return nil, fmt.Errorf("provider '%s' not supported", cloudProvider.Provider)
+	} else {
+		deployerConstructor = c
+	}
+	options := map[string]interface{}{
+		"secretId":              cloudProvider.SecretId,
+		"secretKey":             cloudProvider.SecretKey,
+		domain.OptionsKeyLogger: logger,
+	}
+	if deployer, err := deployerConstructor(options); err != nil {
+		return nil, err
+	} else {
+		return deployer, nil
 	}
 }

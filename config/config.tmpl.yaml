@@ -12,3 +12,12 @@ cloud-providers:
     provider: TencentCloud
     secret-id: "xxxxxxxxxxxxxxxxxxxxx"
     secret-key: "xxxxxxxxxxxxxxxxxxxxx"
+
+deployments:
+  demo:
+    provider-id: "ddd"
+    cert: "/fullchain.pem"
+    key: "/private.pem"
+    assets:
+      - type: cdn
+        id: "xxx"

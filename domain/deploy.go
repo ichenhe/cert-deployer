@@ -71,6 +71,13 @@ func (e *InvalidOptionError) Error() string {
 	return e.Message
 }
 
+// RecoverFromInvalidOptionError catches the InvalidOptionError and handles it to the given handler.
+//
+// Usage:
+//
+//	defer RecoverFromInvalidOptionError(func(e *domain.InvalidOptionError) {
+//		// deal with the error...
+//	})
 func RecoverFromInvalidOptionError(handler func(err *InvalidOptionError)) {
 	if v := recover(); v != nil {
 		if e, ok := v.(*InvalidOptionError); ok {

@@ -1,6 +1,6 @@
 module github.com/ichenhe/cert-deployer
 
-go 1.21
+go 1.22
 
 require (
 	github.com/knadh/koanf/parsers/yaml v0.1.0

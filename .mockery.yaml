@@ -9,7 +9,7 @@ packages:
     config:
       include-regex: ".*"
       exclude-regex: ".*Func"
-  github.com/ichenhe/cert-deployer:
+  github.com/ichenhe/cert-deployer/cmd/app:
     config:
       dir: "{{.InterfaceDir}}"
       outpkg: "{{.PackageName}}"

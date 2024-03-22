@@ -5,7 +5,6 @@ import (
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
 	_ "github.com/ichenhe/cert-deployer/plugins"
-	"github.com/ichenhe/cert-deployer/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -115,7 +114,7 @@ func setLogger(profile *domain.AppConfig) {
 	if logConfig.EnableFile {
 		var f *os.File
 		var err error
-		if !utils.IsDir(logConfig.FileDir) {
+		if !domain.IsDir(logConfig.FileDir) {
 			_ = os.MkdirAll(logConfig.FileDir, 0755)
 		}
 		if f, err = os.OpenFile(path.Join(logConfig.FileDir, "cert-deployer.log"),

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/registry"
-	"github.com/ichenhe/cert-deployer/utils"
 )
 
 // commandExecutor executes intent operation with given arguments. Normally it should be called from
@@ -52,7 +51,7 @@ func (d *defaultCommandExecutor) customDeploy(providers map[string]domain.CloudP
 
 	deployed, _ := uniDeployer.Deploy(allAssets, cert, key)
 	logger.Infof("%d/%d assets deployed successfully: %v", len(deployed), len(allAssets),
-		utils.MapSlice(deployed, func(s domain.Asseter) string {
+		domain.MapSlice(deployed, func(s domain.Asseter) string {
 			i := s.GetBaseInfo()
 			return fmt.Sprintf("%s-%s@%s", i.Type, i.Name, i.Provider)
 		}))

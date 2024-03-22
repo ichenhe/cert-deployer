@@ -24,9 +24,9 @@ func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]doma
 		for name, conf := range providersConfig {
 			if constructor, ok := assetDeployerConstructors[conf.Provider]; ok {
 				options := map[string]interface{}{
-					"secretId":  conf.SecretId,
-					"secretKey": conf.SecretKey,
-					"logger":    logger,
+					"secretId":              conf.SecretId,
+					"secretKey":             conf.SecretKey,
+					domain.OptionsKeyLogger: logger,
 				}
 				if searcher, err := constructor(options); err != nil {
 					logger.Errorf("failed to create asset deployer for provider '%s': %v",

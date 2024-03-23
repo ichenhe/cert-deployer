@@ -1,4 +1,4 @@
-package main
+package deploy
 
 import (
 	"fmt"
@@ -51,16 +51,6 @@ func (n *defaultAssetDeployer) deployToAsset(deployer domain.Deployer, assetType
 	return nil
 }
 
-// deploymentExecutor is responsible for execute deployment defined in the profile.
-type deploymentExecutor interface {
-	// executeDeployment executes a deployment.
-	//
-	// If a deployer is created, it is considered a successful execution, even if no assets were
-	// deployed successfully. Because one deployment may contain many assets, it's confused to say
-	// whether it is success.
-	executeDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error
-}
-
 type defaultDeploymentExecutor struct {
 	logger          *zap.SugaredLogger
 	fileReader      domain.FileReader
@@ -68,15 +58,15 @@ type defaultDeploymentExecutor struct {
 	assetDeployer   assetDeployer
 }
 
-func newDeploymentExecutor() deploymentExecutor {
-	return newCustomDeploymentExecutor(logger, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
+func NewDeploymentExecutor(logger *zap.SugaredLogger) domain.DeploymentExecutor {
+	return NewCustomDeploymentExecutor(logger, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
 }
 
-func newCustomDeploymentExecutor(logger *zap.SugaredLogger, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) deploymentExecutor {
+func NewCustomDeploymentExecutor(logger *zap.SugaredLogger, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) domain.DeploymentExecutor {
 	return &defaultDeploymentExecutor{logger: logger, fileReader: fileReader, deployerFactory: deployerFactory, assetDeployer: assetDeployer}
 }
 
-func (n *defaultDeploymentExecutor) executeDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error {
+func (n *defaultDeploymentExecutor) ExecuteDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error {
 	certData, err := n.fileReader.ReadFile(deployment.Cert)
 	if err != nil {
 		return fmt.Errorf("failed to read public cert: %w", err)

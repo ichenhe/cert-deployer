@@ -17,3 +17,10 @@ packages:
     interfaces:
       assetDeployer: { }
       commandExecutor: { }
+  github.com/ichenhe/cert-deployer/deploy:
+    config:
+      dir: "{{.InterfaceDir}}"
+      outpkg: "{{.PackageName}}"
+      inpackage: True
+    interfaces:
+      assetDeployer: { }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ichenhe/cert-deployer/deploy"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/registry"
 )
@@ -64,7 +65,7 @@ func (d *defaultCommandExecutor) executeDeployments(appConfig *domain.AppConfig,
 			continue
 		} else {
 			logger.Debugf("execute deployment '%s'...", deploymentId)
-			err := newDeploymentExecutor().executeDeployment(appConfig.CloudProviders, d)
+			err := deploy.NewDeploymentExecutor(logger).ExecuteDeployment(appConfig.CloudProviders, d)
 			if err != nil {
 				logger.Warnf("failed to deploy '%s': %v", deploymentId, err)
 			} else {

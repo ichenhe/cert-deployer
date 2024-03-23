@@ -4,6 +4,7 @@ type AppConfig struct {
 	Log            LogConfig                `koanf:"log"`
 	CloudProviders map[string]CloudProvider `koanf:"cloud-providers"`
 	Deployments    map[string]Deployment    `koanf:"deployments"`
+	Triggers       map[string]TriggerDefiner
 }
 
 type LogConfig struct {
@@ -28,4 +29,34 @@ type Deployment struct {
 type DeploymentAsset struct {
 	Type string `koanf:"type"`
 	Id   string `koanf:"id"`
+}
+
+type TriggerDefiner interface {
+	GetName() string
+	GetDeploymentIds() []string
+}
+
+type triggerBaseInfo struct {
+	Name        string
+	Type        string   `koanf:"type"`
+	Deployments []string `koanf:"deployments"`
+}
+
+func (t triggerBaseInfo) GetName() string {
+	return t.Name
+}
+
+func (t triggerBaseInfo) GetDeploymentIds() []string {
+	return t.Deployments
+}
+
+type FileMonitoringTriggerOptions struct {
+	File  string `koanf:"file"`
+	Event string `koanf:"event"`
+	Delay int    `koanf:"delay"`
+}
+
+type FileMonitoringTriggerDef struct {
+	triggerBaseInfo `koanf:",squash"`
+	Options         FileMonitoringTriggerOptions `koanf:"options"`
 }

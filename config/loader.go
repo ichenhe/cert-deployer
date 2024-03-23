@@ -33,9 +33,30 @@ func ReadConfig(configFile string) (*domain.AppConfig, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	if r, err := unmarshal(k); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	} else {
-		return r, nil
+	var config *domain.AppConfig
+	config, err := unmarshal(k)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+
+	if err = parseTriggers(k, config); err != nil {
+		return nil, fmt.Errorf("failed to load triggers: %w", err)
+	}
+
+	if err = verifyDeploymentsReferencedInTriggerExist(config); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func verifyDeploymentsReferencedInTriggerExist(config *domain.AppConfig) error {
+	for name, trigger := range config.Triggers {
+		for _, deploymentName := range trigger.GetDeploymentIds() {
+			if _, ex := config.Deployments[deploymentName]; !ex {
+				return fmt.Errorf("deployment '%s' referenced in trigger '%s' does not exist", deploymentName, name)
+			}
+		}
+	}
+	return nil
 }

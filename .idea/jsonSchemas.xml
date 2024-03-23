@@ -15,6 +15,9 @@
                   <Item>
                     <option name="path" value="config/config.tmpl.yaml" />
                   </Item>
+                  <Item>
+                    <option name="path" value="cert-deployer.yaml" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

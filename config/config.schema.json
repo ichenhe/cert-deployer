@@ -118,7 +118,7 @@
                   ],
                   "default": "content_change"
                 },
-                "delay": {
+                "wait": {
                   "title": "in ms",
                   "description": "The time (ms) to wait before executing the deployment. If it is triggered repeatedly while waiting, the earlier one will be cancelled.",
                   "type": "integer",

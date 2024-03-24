@@ -106,12 +106,13 @@ func NewDeployError(asset Asseter, err error) *DeployError {
 	}
 }
 
-// DeploymentExecutor is responsible for execute deployment defined in the profile.
+// DeploymentExecutor is responsible for executing deployment defined in the profile.
+// Typically, implements may contain a field to store domain.CloudProvider s.
 type DeploymentExecutor interface {
 	// ExecuteDeployment executes a deployment.
 	//
 	// If a deployer is created, it is considered a successful execution, even if no assets were
 	// deployed successfully. Because one deployment may contain many assets, it's confused to say
 	// whether it is success.
-	ExecuteDeployment(providers map[string]CloudProvider, deployment Deployment) error
+	ExecuteDeployment(deployment Deployment) error
 }

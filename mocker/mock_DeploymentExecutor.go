@@ -20,17 +20,17 @@ func (_m *MockDeploymentExecutor) EXPECT() *MockDeploymentExecutor_Expecter {
 	return &MockDeploymentExecutor_Expecter{mock: &_m.Mock}
 }
 
-// ExecuteDeployment provides a mock function with given fields: providers, deployment
-func (_m *MockDeploymentExecutor) ExecuteDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error {
-	ret := _m.Called(providers, deployment)
+// ExecuteDeployment provides a mock function with given fields: deployment
+func (_m *MockDeploymentExecutor) ExecuteDeployment(deployment domain.Deployment) error {
+	ret := _m.Called(deployment)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExecuteDeployment")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(map[string]domain.CloudProvider, domain.Deployment) error); ok {
-		r0 = rf(providers, deployment)
+	if rf, ok := ret.Get(0).(func(domain.Deployment) error); ok {
+		r0 = rf(deployment)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -44,15 +44,14 @@ type MockDeploymentExecutor_ExecuteDeployment_Call struct {
 }
 
 // ExecuteDeployment is a helper method to define mock.On call
-//   - providers map[string]domain.CloudProvider
 //   - deployment domain.Deployment
-func (_e *MockDeploymentExecutor_Expecter) ExecuteDeployment(providers interface{}, deployment interface{}) *MockDeploymentExecutor_ExecuteDeployment_Call {
-	return &MockDeploymentExecutor_ExecuteDeployment_Call{Call: _e.mock.On("ExecuteDeployment", providers, deployment)}
+func (_e *MockDeploymentExecutor_Expecter) ExecuteDeployment(deployment interface{}) *MockDeploymentExecutor_ExecuteDeployment_Call {
+	return &MockDeploymentExecutor_ExecuteDeployment_Call{Call: _e.mock.On("ExecuteDeployment", deployment)}
 }
 
-func (_c *MockDeploymentExecutor_ExecuteDeployment_Call) Run(run func(providers map[string]domain.CloudProvider, deployment domain.Deployment)) *MockDeploymentExecutor_ExecuteDeployment_Call {
+func (_c *MockDeploymentExecutor_ExecuteDeployment_Call) Run(run func(deployment domain.Deployment)) *MockDeploymentExecutor_ExecuteDeployment_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(map[string]domain.CloudProvider), args[1].(domain.Deployment))
+		run(args[0].(domain.Deployment))
 	})
 	return _c
 }
@@ -62,7 +61,7 @@ func (_c *MockDeploymentExecutor_ExecuteDeployment_Call) Return(_a0 error) *Mock
 	return _c
 }
 
-func (_c *MockDeploymentExecutor_ExecuteDeployment_Call) RunAndReturn(run func(map[string]domain.CloudProvider, domain.Deployment) error) *MockDeploymentExecutor_ExecuteDeployment_Call {
+func (_c *MockDeploymentExecutor_ExecuteDeployment_Call) RunAndReturn(run func(domain.Deployment) error) *MockDeploymentExecutor_ExecuteDeployment_Call {
 	_c.Call.Return(run)
 	return _c
 }

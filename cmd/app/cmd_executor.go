@@ -65,7 +65,7 @@ func (d *defaultCommandExecutor) executeDeployments(appConfig *domain.AppConfig,
 			continue
 		} else {
 			logger.Debugf("execute deployment '%s'...", deploymentId)
-			err := deploy.NewDeploymentExecutor(logger).ExecuteDeployment(appConfig.CloudProviders, d)
+			err := deploy.NewDeploymentExecutor(logger, appConfig.CloudProviders).ExecuteDeployment(d)
 			if err != nil {
 				logger.Warnf("failed to deploy '%s': %v", deploymentId, err)
 			} else {

@@ -53,20 +53,21 @@ func (n *defaultAssetDeployer) deployToAsset(deployer domain.Deployer, assetType
 
 type defaultDeploymentExecutor struct {
 	logger          *zap.SugaredLogger
+	providers       map[string]domain.CloudProvider
 	fileReader      domain.FileReader
 	deployerFactory domain.DeployerFactory
 	assetDeployer   assetDeployer
 }
 
-func NewDeploymentExecutor(logger *zap.SugaredLogger) domain.DeploymentExecutor {
-	return NewCustomDeploymentExecutor(logger, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
+func NewDeploymentExecutor(logger *zap.SugaredLogger, providers map[string]domain.CloudProvider) domain.DeploymentExecutor {
+	return NewCustomDeploymentExecutor(logger, providers, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
 }
 
-func NewCustomDeploymentExecutor(logger *zap.SugaredLogger, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) domain.DeploymentExecutor {
-	return &defaultDeploymentExecutor{logger: logger, fileReader: fileReader, deployerFactory: deployerFactory, assetDeployer: assetDeployer}
+func NewCustomDeploymentExecutor(logger *zap.SugaredLogger, providers map[string]domain.CloudProvider, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) domain.DeploymentExecutor {
+	return &defaultDeploymentExecutor{logger: logger, providers: providers, fileReader: fileReader, deployerFactory: deployerFactory, assetDeployer: assetDeployer}
 }
 
-func (n *defaultDeploymentExecutor) ExecuteDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error {
+func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployment) error {
 	certData, err := n.fileReader.ReadFile(deployment.Cert)
 	if err != nil {
 		return fmt.Errorf("failed to read public cert: %w", err)
@@ -77,7 +78,7 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(providers map[string]domai
 	}
 
 	// find provider configuration
-	provider, ex := providers[deployment.ProviderId]
+	provider, ex := n.providers[deployment.ProviderId]
 	if !ex {
 		return fmt.Errorf("provider '%s' does not exist", deployment.ProviderId)
 	}

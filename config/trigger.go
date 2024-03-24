@@ -37,8 +37,7 @@ func parseTriggers(k *koanf.Koanf, config *domain.AppConfig) (err error) {
 		case "file_monitoring":
 			t = mustUnmarshalSpecificTrigger(k, name, &domain.FileMonitoringTriggerDef{
 				Options: domain.FileMonitoringTriggerOptions{
-					Event: "content_change",
-					Wait:  1000,
+					Wait: 1000,
 				},
 			})
 		default:

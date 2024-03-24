@@ -110,14 +110,6 @@
                   "description": "The file to be monitored, can not be a directory. Absolute path is recommended.",
                   "type": "string"
                 },
-                "event": {
-                  "description": "The event to be monitored.",
-                  "type": "string",
-                  "enum": [
-                    "content_change"
-                  ],
-                  "default": "content_change"
-                },
                 "wait": {
                   "title": "in ms",
                   "description": "The time (ms) to wait before executing the deployment. If it is triggered repeatedly while waiting, the earlier one will be cancelled.",

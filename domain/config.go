@@ -51,9 +51,8 @@ func (t triggerBaseInfo) GetDeploymentIds() []string {
 }
 
 type FileMonitoringTriggerOptions struct {
-	File  string `koanf:"file"`
-	Event string `koanf:"event"`
-	Wait  int    `koanf:"wait"`
+	File string `koanf:"file"`
+	Wait int    `koanf:"wait"`
 }
 
 type FileMonitoringTriggerDef struct {

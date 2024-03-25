@@ -1,4 +1,4 @@
-package main
+package deploy
 
 import (
 	"fmt"
@@ -51,32 +51,23 @@ func (n *defaultAssetDeployer) deployToAsset(deployer domain.Deployer, assetType
 	return nil
 }
 
-// deploymentExecutor is responsible for execute deployment defined in the profile.
-type deploymentExecutor interface {
-	// executeDeployment executes a deployment.
-	//
-	// If a deployer is created, it is considered a successful execution, even if no assets were
-	// deployed successfully. Because one deployment may contain many assets, it's confused to say
-	// whether it is success.
-	executeDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error
-}
-
 type defaultDeploymentExecutor struct {
 	logger          *zap.SugaredLogger
+	providers       map[string]domain.CloudProvider
 	fileReader      domain.FileReader
 	deployerFactory domain.DeployerFactory
 	assetDeployer   assetDeployer
 }
 
-func newDeploymentExecutor() deploymentExecutor {
-	return newCustomDeploymentExecutor(logger, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
+func NewDeploymentExecutor(logger *zap.SugaredLogger, providers map[string]domain.CloudProvider) domain.DeploymentExecutor {
+	return NewCustomDeploymentExecutor(logger, providers, domain.FileReaderFunc(os.ReadFile), registry.NewDeployerFactory(), newAssetDeployer())
 }
 
-func newCustomDeploymentExecutor(logger *zap.SugaredLogger, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) deploymentExecutor {
-	return &defaultDeploymentExecutor{logger: logger, fileReader: fileReader, deployerFactory: deployerFactory, assetDeployer: assetDeployer}
+func NewCustomDeploymentExecutor(logger *zap.SugaredLogger, providers map[string]domain.CloudProvider, fileReader domain.FileReader, deployerFactory domain.DeployerFactory, assetDeployer assetDeployer) domain.DeploymentExecutor {
+	return &defaultDeploymentExecutor{logger: logger, providers: providers, fileReader: fileReader, deployerFactory: deployerFactory, assetDeployer: assetDeployer}
 }
 
-func (n *defaultDeploymentExecutor) executeDeployment(providers map[string]domain.CloudProvider, deployment domain.Deployment) error {
+func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployment) error {
 	certData, err := n.fileReader.ReadFile(deployment.Cert)
 	if err != nil {
 		return fmt.Errorf("failed to read public cert: %w", err)
@@ -87,7 +78,7 @@ func (n *defaultDeploymentExecutor) executeDeployment(providers map[string]domai
 	}
 
 	// find provider configuration
-	provider, ex := providers[deployment.ProviderId]
+	provider, ex := n.providers[deployment.ProviderId]
 	if !ex {
 		return fmt.Errorf("provider '%s' does not exist", deployment.ProviderId)
 	}

@@ -53,6 +53,83 @@
           "secret-key"
         ]
       }
+    },
+    "triggers": {
+      "title": "Usage: triggers.<trigger-name>: {}.",
+      "description": "Trigger executes defined deployments when the specified event is occurred. Define triggers with different name(id) as key under this section.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "The type of trigger.",
+            "type": "string",
+            "enum": [
+              "file_monitoring"
+            ]
+          },
+          "deployments": {
+            "description": "The name(id) of deployments executed by this trigger.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "options": {
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/$defs/trigger-if/file_monitoring"
+          }
+        ],
+        "required": [
+          "type",
+          "deployments"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "trigger-if": {
+      "file_monitoring": {
+        "if": {
+          "properties": {
+            "type": {
+              "const": "file_monitoring"
+            }
+          }
+        },
+        "then": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "properties": {
+                "file": {
+                  "description": "The file to be monitored, can not be a directory. Absolute path is recommended.",
+                  "type": "string"
+                },
+                "wait": {
+                  "title": "in ms",
+                  "description": "The time (ms) to wait before executing the deployment. If it is triggered repeatedly while waiting, the earlier one will be cancelled.",
+                  "type": "integer",
+                  "default": 1000,
+                  "minimum": 0,
+                  "maximum": 600000
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "options"
+          ]
+        }
+      }
     }
   }
 }

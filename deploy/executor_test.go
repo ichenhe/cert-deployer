@@ -1,4 +1,4 @@
-package main
+package deploy
 
 import (
 	"errors"
@@ -175,9 +175,10 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			n := newCustomDeploymentExecutor(zap.NewNop().Sugar(), tt.fields.fileReader, tt.fields.deployerFactory, tt.fields.assetDeployer)
-			if err := n.executeDeployment(tt.args.providers, tt.args.deployment); (err != nil) != tt.wantErr {
-				t.Errorf("executeDeployment() error = %v, wantErr %v", err, tt.wantErr)
+			n := NewCustomDeploymentExecutor(zap.NewNop().Sugar(), tt.args.providers,
+				tt.fields.fileReader, tt.fields.deployerFactory, tt.fields.assetDeployer)
+			if err := n.ExecuteDeployment(tt.args.deployment); (err != nil) != tt.wantErr {
+				t.Errorf("ExecuteDeployment() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

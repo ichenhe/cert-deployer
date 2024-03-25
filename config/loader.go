@@ -39,6 +39,12 @@ func ReadConfig(configFile string) (*domain.AppConfig, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// infer the deployment's name
+	for name, deployment := range config.Deployments {
+		deployment.Name = name
+		config.Deployments[name] = deployment
+	}
+
 	if err = parseTriggers(k, config); err != nil {
 		return nil, fmt.Errorf("failed to load triggers: %w", err)
 	}

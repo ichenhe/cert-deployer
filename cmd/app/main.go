@@ -64,6 +64,10 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 
 	app.Commands = []*cli.Command{
 		{
+			Name: "run", Usage: "Register all triggers and start listening",
+			Action: cmdDispatcher.run,
+		},
+		{
 			Name: "deploy", Usage: "Deploy certs to cloud services",
 			Flags: []cli.Flag{
 				&cli.StringSliceFlag{

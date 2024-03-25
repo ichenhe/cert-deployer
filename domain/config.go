@@ -1,10 +1,10 @@
 package domain
 
 type AppConfig struct {
-	Log            LogConfig                `koanf:"log"`
-	CloudProviders map[string]CloudProvider `koanf:"cloud-providers"`
-	Deployments    map[string]Deployment    `koanf:"deployments"`
-	Triggers       map[string]TriggerDefiner
+	Log            LogConfig                 `koanf:"log"`
+	CloudProviders map[string]CloudProvider  `koanf:"cloud-providers"`
+	Deployments    map[string]Deployment     `koanf:"deployments"`
+	Triggers       map[string]TriggerDefiner `koanf:"-"` // this field is set manually
 }
 
 type LogConfig struct {
@@ -20,6 +20,7 @@ type CloudProvider struct {
 }
 
 type Deployment struct {
+	Name       string            // name of this deployment, infer from the map
 	ProviderId string            `koanf:"provider-id"`
 	Cert       string            `koanf:"cert"` // path to full chain pem
 	Key        string            `koanf:"key"`  // path to private pem
@@ -33,6 +34,7 @@ type DeploymentAsset struct {
 
 type TriggerDefiner interface {
 	GetName() string
+	GetType() string
 	GetDeploymentIds() []string
 }
 
@@ -44,6 +46,10 @@ type triggerBaseInfo struct {
 
 func (t triggerBaseInfo) GetName() string {
 	return t.Name
+}
+
+func (t triggerBaseInfo) GetType() string {
+	return t.Type
 }
 
 func (t triggerBaseInfo) GetDeploymentIds() []string {

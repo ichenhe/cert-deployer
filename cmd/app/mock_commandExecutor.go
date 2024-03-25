@@ -90,6 +90,56 @@ func (_c *MockcommandExecutor_executeDeployments_Call) RunAndReturn(run func(*do
 	return _c
 }
 
+// registerTriggers provides a mock function with given fields: providers, deployments, triggerDefs
+func (_m *MockcommandExecutor) registerTriggers(providers map[string]domain.CloudProvider, deployments map[string]domain.Deployment, triggerDefs map[string]domain.TriggerDefiner) []domain.Trigger {
+	ret := _m.Called(providers, deployments, triggerDefs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for registerTriggers")
+	}
+
+	var r0 []domain.Trigger
+	if rf, ok := ret.Get(0).(func(map[string]domain.CloudProvider, map[string]domain.Deployment, map[string]domain.TriggerDefiner) []domain.Trigger); ok {
+		r0 = rf(providers, deployments, triggerDefs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.Trigger)
+		}
+	}
+
+	return r0
+}
+
+// MockcommandExecutor_registerTriggers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'registerTriggers'
+type MockcommandExecutor_registerTriggers_Call struct {
+	*mock.Call
+}
+
+// registerTriggers is a helper method to define mock.On call
+//   - providers map[string]domain.CloudProvider
+//   - deployments map[string]domain.Deployment
+//   - triggerDefs map[string]domain.TriggerDefiner
+func (_e *MockcommandExecutor_Expecter) registerTriggers(providers interface{}, deployments interface{}, triggerDefs interface{}) *MockcommandExecutor_registerTriggers_Call {
+	return &MockcommandExecutor_registerTriggers_Call{Call: _e.mock.On("registerTriggers", providers, deployments, triggerDefs)}
+}
+
+func (_c *MockcommandExecutor_registerTriggers_Call) Run(run func(providers map[string]domain.CloudProvider, deployments map[string]domain.Deployment, triggerDefs map[string]domain.TriggerDefiner)) *MockcommandExecutor_registerTriggers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(map[string]domain.CloudProvider), args[1].(map[string]domain.Deployment), args[2].(map[string]domain.TriggerDefiner))
+	})
+	return _c
+}
+
+func (_c *MockcommandExecutor_registerTriggers_Call) Return(registeredTriggers []domain.Trigger) *MockcommandExecutor_registerTriggers_Call {
+	_c.Call.Return(registeredTriggers)
+	return _c
+}
+
+func (_c *MockcommandExecutor_registerTriggers_Call) RunAndReturn(run func(map[string]domain.CloudProvider, map[string]domain.Deployment, map[string]domain.TriggerDefiner) []domain.Trigger) *MockcommandExecutor_registerTriggers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockcommandExecutor creates a new instance of MockcommandExecutor. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockcommandExecutor(t interface {

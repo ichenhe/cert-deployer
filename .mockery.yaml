@@ -24,3 +24,10 @@ packages:
       inpackage: True
     interfaces:
       assetDeployer: { }
+  github.com/ichenhe/cert-deployer/trigger/filetrigger:
+    config:
+      dir: "{{.InterfaceDir}}"
+      outpkg: "{{.PackageName}}"
+      inpackage: True
+    interfaces:
+      fileMonitor: { }

@@ -14,10 +14,18 @@ cloud-providers:
     secret-key: "xxxxxxxxxxxxxxxxxxxxx"
 
 deployments:
-  demo:
-    provider-id: "ddd"
+  tencent-cdn:
+    provider-id: example
     cert: "/fullchain.pem"
     key: "/private.pem"
     assets:
       - type: cdn
         id: "xxx"
+
+triggers:
+  cert:
+    type: file_monitoring
+    deployments: [ "tencent-cdn" ]
+    options:
+      file: "/path/to/cert.pem"
+      wait: 1000

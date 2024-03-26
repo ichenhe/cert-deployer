@@ -54,6 +54,56 @@
         ]
       }
     },
+    "deployments": {
+      "title": "Usage: deployments.<deployment-name>: {}.",
+      "description": "Deployment defines the cert, target services and provider they belong to.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "provider-id": {
+            "description": "The name(id) of the cloud provider.",
+            "type": "string"
+          },
+          "cert": {
+            "description": "The public certificate to be deployed.",
+            "type": "string"
+          },
+          "key": {
+            "description": "The private key to be deployed.",
+            "type": "string"
+          },
+          "assets": {
+            "description": "The assets to be deployed to. You can specify both type and id, or just type.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "description": "The type of asset. Must be in the supported lise of corresponding provider.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "The id of the asset. If not specified, all assets of this type will be considered target.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "provider-id",
+          "cert",
+          "key",
+          "assets"
+        ],
+        "additionalProperties": false
+      }
+    },
     "triggers": {
       "title": "Usage: triggers.<trigger-name>: {}.",
       "description": "Trigger executes defined deployments when the specified event is occurred. Define triggers with different name(id) as key under this section.",

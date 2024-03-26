@@ -12,7 +12,7 @@ import (
 // a commandDispatcher.
 type commandExecutor interface {
 	// executeDeployments executes deployments who have specific id defined in profile.
-	executeDeployments(appConfig *domain.AppConfig, deploymentIds []string)
+	executeDeployments(providers map[string]domain.CloudProvider, deployments map[string]domain.Deployment, deploymentIds []string)
 
 	// customDeploy reads configurations from command line and processes a one-time deployment.
 	customDeploy(providers map[string]domain.CloudProvider, rawTypes []string, cert []byte, key []byte)
@@ -63,14 +63,14 @@ func (d *defaultCommandExecutor) customDeploy(providers map[string]domain.CloudP
 		}))
 }
 
-func (d *defaultCommandExecutor) executeDeployments(appConfig *domain.AppConfig, deploymentIds []string) {
+func (d *defaultCommandExecutor) executeDeployments(providers map[string]domain.CloudProvider, deployments map[string]domain.Deployment, deploymentIds []string) {
 	for _, deploymentId := range deploymentIds {
-		if d, ex := appConfig.Deployments[deploymentId]; !ex {
+		if d, ex := deployments[deploymentId]; !ex {
 			logger.Warnf("deployment '%s' does not exist, ignroe", deploymentId)
 			continue
 		} else {
 			logger.Debugf("execute deployment '%s'...", deploymentId)
-			err := deploy.NewDeploymentExecutor(logger, appConfig.CloudProviders).ExecuteDeployment(d)
+			err := deploy.NewDeploymentExecutor(logger, providers).ExecuteDeployment(d)
 			if err != nil {
 				logger.Warnf("failed to deploy '%s': %v", deploymentId, err)
 			} else {

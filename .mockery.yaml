@@ -23,7 +23,7 @@ packages:
       outpkg: "{{.PackageName}}"
       inpackage: True
     interfaces:
-      assetDeployer: { }
+      deployerCommander: { }
   github.com/ichenhe/cert-deployer/trigger/filetrigger:
     config:
       dir: "{{.InterfaceDir}}"

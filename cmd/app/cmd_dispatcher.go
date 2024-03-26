@@ -40,7 +40,7 @@ func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
 	setLogger(appConfig)
 
 	if deploymentIds := c.StringSlice("deployment"); deploymentIds != nil && len(deploymentIds) > 0 {
-		d.cmdExecutor.executeDeployments(appConfig, deploymentIds)
+		d.cmdExecutor.executeDeployments(appConfig.CloudProviders, appConfig.Deployments, deploymentIds)
 		return nil
 	}
 

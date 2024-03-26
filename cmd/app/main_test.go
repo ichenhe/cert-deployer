@@ -28,7 +28,7 @@ func Test_run(t *testing.T) {
 			args: []string{"--profile", "/a.yml", "deploy", "--deployment", "a,b,c"},
 			executor: func(t *testing.T) commandExecutor {
 				e := NewMockcommandExecutor(t)
-				e.EXPECT().executeDeployments(mock.Anything, []string{"a", "b", "c"}).Return().Once()
+				e.EXPECT().executeDeployments(mock.Anything, mock.Anything, []string{"a", "b", "c"}).Return().Once()
 				return e
 			},
 			wantErr: false,

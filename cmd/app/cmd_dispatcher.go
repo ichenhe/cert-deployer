@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
+	"github.com/knadh/koanf/v2"
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -19,58 +21,70 @@ type commandDispatcher interface {
 }
 
 type defaultCommandDispatcher struct {
-	loadProfile profileLoader
+	initializer initializer
 	fileReader  domain.FileReader
 	cmdExecutor commandExecutor
 }
 
-func newCommandDispatcher(loadProfile profileLoader, fileReader domain.FileReader, cmdExecutor commandExecutor) commandDispatcher {
+func newCommandDispatcher(initializer initializer, fileReader domain.FileReader, cmdExecutor commandExecutor) commandDispatcher {
 	return &defaultCommandDispatcher{
-		loadProfile: loadProfile,
+		initializer: initializer,
 		fileReader:  fileReader,
 		cmdExecutor: cmdExecutor,
 	}
 }
 
 func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
-	appConfig, err := d.loadProfile(c)
-	if err != nil {
-		return err
-	}
-	setLogger(appConfig)
-
 	if deploymentIds := c.StringSlice("deployment"); deploymentIds != nil && len(deploymentIds) > 0 {
-		d.cmdExecutor.executeDeployments(appConfig, deploymentIds)
+		appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, nil)
+		if err != nil {
+			return err
+		}
+		d.cmdExecutor.executeDeployments(appConfig.CloudProviders, appConfig.Deployments, deploymentIds)
 		return nil
 	}
 
 	// check arguments
-	requiredFlags := []string{"cert", "key", "type"}
+	requiredFlags := []string{"provider", "secret-id", "secret-key", "cert", "key", "type"}
+	providedFlags := make(map[string]struct{})
+	for _, flag := range c.FlagNames() {
+		providedFlags[flag] = struct{}{}
+	}
 	for _, flag := range requiredFlags {
-		if c.Generic(flag) == nil {
-			return fmt.Errorf("flags %v must be provided without --deployment", requiredFlags)
+		if _, ex := providedFlags[flag]; !ex {
+			return fmt.Errorf("flag [%s] must be provided without --deployment, run 'deploy --help' for details", strings.Join(requiredFlags, ", "))
 		}
 	}
 
-	certData, err := d.fileReader.ReadFile(c.Path("cert"))
+	// load & generate profile
+	appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, func(k *koanf.Koanf) {
+		_ = k.Set("cloud-providers.from-cli-1", domain.CloudProvider{
+			Provider:  c.String("provider"),
+			SecretId:  c.String("secret-id"),
+			SecretKey: c.String("secret-key"),
+		})
+
+		_ = k.Set("deployments.from-cli-1", domain.Deployment{
+			ProviderId: "from-cli-1",
+			Cert:       c.Path("cert"),
+			Key:        c.Path("key"),
+			Assets:     []domain.DeploymentAsset{{Type: c.String("type")}},
+		})
+
+	})
 	if err != nil {
-		return fmt.Errorf("invalid public cert: %w", err)
-	}
-	keyData, err := d.fileReader.ReadFile(c.Path("key"))
-	if err != nil {
-		return fmt.Errorf("invalid private key: %w", err)
+		return err
 	}
 
-	d.cmdExecutor.customDeploy(appConfig.CloudProviders, c.StringSlice("type"), certData, keyData)
+	d.cmdExecutor.executeDeployments(appConfig.CloudProviders, appConfig.Deployments, []string{"from-cli-1"})
 	return nil
 }
 
 func (d *defaultCommandDispatcher) run(c *cli.Context) error {
-	appConfig, err := d.loadProfile(c)
+	appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, nil)
 	if err != nil {
 		return err
 	}
-	setLogger(appConfig)
 
 	triggers := d.cmdExecutor.registerTriggers(appConfig.CloudProviders, appConfig.Deployments, appConfig.Triggers)
 

@@ -9,106 +9,11 @@ import (
 	"testing"
 )
 
-func Test_defaultAssetDeployer_deployToAsset(t *testing.T) {
-	type args struct {
-		assetId               string
-		fetchedAssetsProvider func(ty domain.AssetType) ([]domain.Asseter, error) // mock the result of deployer.listAssets
-		deployResultProvider  func() []*domain.DeployError
-	}
-
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "success",
-			args: args{
-				assetId: "id1",
-				fetchedAssetsProvider: func(ty domain.AssetType) ([]domain.Asseter, error) {
-					return []domain.Asseter{
-						&domain.Asset{Type: ty, Id: "id1", Available: true},
-					}, nil
-				},
-				deployResultProvider: func() []*domain.DeployError {
-					return nil
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "failed to list assets",
-			args: args{
-				assetId: "id1",
-				fetchedAssetsProvider: func(ty domain.AssetType) ([]domain.Asseter, error) {
-					return nil, errors.New("failed to list asserts")
-				},
-				deployResultProvider: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "target asset does not exist",
-			args: args{
-				assetId: "id2",
-				fetchedAssetsProvider: func(ty domain.AssetType) ([]domain.Asseter, error) {
-					return []domain.Asseter{
-						&domain.Asset{Type: ty, Id: "id1", Available: true},
-					}, nil
-				},
-				deployResultProvider: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "target asset unavailable",
-			args: args{
-				assetId: "id2",
-				fetchedAssetsProvider: func(ty domain.AssetType) ([]domain.Asseter, error) {
-					return []domain.Asseter{
-						&domain.Asset{Type: ty, Id: "id2", Available: false},
-					}, nil
-				},
-				deployResultProvider: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "deployment failure",
-			args: args{
-				assetId: "id2",
-				fetchedAssetsProvider: func(ty domain.AssetType) ([]domain.Asseter, error) {
-					return []domain.Asseter{
-						&domain.Asset{Type: ty, Id: "id2", Available: true},
-					}, nil
-				},
-				deployResultProvider: func() []*domain.DeployError {
-					return []*domain.DeployError{domain.NewDeployError(nil, errors.New("err"))}
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deployer := mocker.NewMockDeployer(t)
-			deployer.EXPECT().ListAssets(domain.AssetType("test")).RunAndReturn(tt.args.fetchedAssetsProvider).Once()
-			if tt.args.deployResultProvider != nil {
-				deployer.EXPECT().Deploy(mock.Anything, mock.Anything, mock.Anything).Return(nil, tt.args.deployResultProvider())
-			}
-
-			if err := newAssetDeployer().deployToAsset(deployer, "test", tt.args.assetId, nil, nil); (err != nil) != tt.wantErr {
-				t.Errorf("deployToAsset() error = %v, wantErr = %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 	type fields struct {
-		fileReader      domain.FileReader
-		deployerFactory domain.DeployerFactory
-		assetDeployer   assetDeployer
+		fileReader        domain.FileReader
+		deployerFactory   domain.DeployerFactory
+		deployerCommander deployerCommander
 	}
 	type args struct {
 		providers  map[string]domain.CloudProvider
@@ -129,23 +34,41 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "success",
+			name: "deploy to 2 assets",
 			fields: fields{
 				fileReader:      successFileReader,
 				deployerFactory: successDeployFactory(),
-				assetDeployer: func() assetDeployer {
-					d := NewMockassetDeployer(t)
-					d.EXPECT().deployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-						mock.Anything).Return(nil).Times(2)
-					return d
+				deployerCommander: func() deployerCommander {
+					c := NewMockdeployerCommander(t)
+					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(2)
+					return c
 				}(),
 			},
-
 			args: args{
 				providers: map[string]domain.CloudProvider{"demo": {}},
 				deployment: domain.Deployment{
 					ProviderId: "demo",
-					Assets:     []domain.DeploymentAsset{{Type: "cdn"}, {Type: "cdn"}},
+					Assets:     []domain.DeploymentAsset{{Type: "cdn", Id: "x"}, {Type: "cdn", Id: "x"}},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "deploy to a type",
+			fields: fields{
+				fileReader:      successFileReader,
+				deployerFactory: successDeployFactory(),
+				deployerCommander: func() deployerCommander {
+					c := NewMockdeployerCommander(t)
+					c.EXPECT().DeployToAssetType(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+					return c
+				}(),
+			},
+			args: args{
+				providers: map[string]domain.CloudProvider{"demo": {}},
+				deployment: domain.Deployment{
+					ProviderId: "demo",
+					Assets:     []domain.DeploymentAsset{{Type: "cdn"}},
 				},
 			},
 			wantErr: false,
@@ -155,11 +78,10 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 			fields: fields{
 				fileReader:      successFileReader,
 				deployerFactory: successDeployFactory(),
-				assetDeployer: func() assetDeployer {
-					d := NewMockassetDeployer(t)
-					d.EXPECT().deployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-						mock.Anything).Return(errors.New("err")).Times(2)
-					return d
+				deployerCommander: func() deployerCommander {
+					c := NewMockdeployerCommander(t)
+					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err")).Times(2)
+					return c
 				}(),
 			},
 			args: args{
@@ -167,7 +89,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 
 				deployment: domain.Deployment{
 					ProviderId: "demo",
-					Assets:     []domain.DeploymentAsset{{Type: "cdn"}, {Type: "cdn"}},
+					Assets:     []domain.DeploymentAsset{{Type: "cdn", Id: "x"}, {Type: "cdn", Id: "x"}},
 				},
 			},
 			wantErr: false, // the overall deployment itself is success once it tried to deploy.
@@ -175,9 +97,13 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			n := NewCustomDeploymentExecutor(zap.NewNop().Sugar(), tt.args.providers,
-				tt.fields.fileReader, tt.fields.deployerFactory, tt.fields.assetDeployer)
-			if err := n.ExecuteDeployment(tt.args.deployment); (err != nil) != tt.wantErr {
+			e := NewDeploymentExecutor(zap.NewNop().Sugar(), tt.args.providers).(*defaultDeploymentExecutor)
+			e.fileReader = tt.fields.fileReader
+			e.deployerFactory = tt.fields.deployerFactory
+			e.deployerCommanderFactory = func(deployer domain.Deployer) deployerCommander {
+				return tt.fields.deployerCommander
+			}
+			if err := e.ExecuteDeployment(tt.args.deployment); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteDeployment() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

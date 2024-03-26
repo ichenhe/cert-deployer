@@ -6,6 +6,9 @@ import (
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/urfave/cli/v2"
+	"os"
+	"path/filepath"
 )
 
 func createDefaultConfig() (k *koanf.Koanf) {
@@ -20,19 +23,57 @@ func unmarshal(k *koanf.Koanf) (*domain.AppConfig, error) {
 	return r, err
 }
 
-func DefaultConfig() *domain.AppConfig {
-	k := createDefaultConfig()
-	r, _ := unmarshal(k)
-	return r
-}
-
-func ReadConfig(configFile string) (*domain.AppConfig, error) {
-	var k = createDefaultConfig()
-
-	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+func resolveProfilePath(c *cli.Context) string {
+	if c != nil {
+		if profilePath := c.Path("profile"); profilePath != "" {
+			return profilePath
+		}
 	}
 
+	searchDirs := make([]string, 0)
+	if exe, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exe)
+		searchDirs = append(searchDirs, dir, filepath.Join(dir, "config"))
+	}
+	if dir, err := os.Getwd(); err == nil {
+		searchDirs = append(searchDirs, dir, filepath.Join(dir, "config"))
+	}
+
+	fileName := "cert-deployer"
+	exts := []string{".yaml", ".yml"}
+	for _, dir := range searchDirs {
+		for _, ext := range exts {
+			path := filepath.Join(dir, fileName+ext)
+			if isFile(path) {
+				return path
+			}
+		}
+	}
+
+	return ""
+}
+
+// CreateWithModifier creates a default configuration, tries to resolve profile path and load it if valid.
+// Optional modifier will be applied before parsing and unmarshalling the config.
+func CreateWithModifier(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
+	k := createDefaultConfig()
+
+	// try to load from profile
+	if profile := resolveProfilePath(c); profile != "" {
+		// found valid profile, load it
+		if err := k.Load(file.Provider(profile), yaml.Parser()); err != nil {
+			return nil, fmt.Errorf("failed to load config file '%s': %w", profile, err)
+		}
+	}
+
+	if modifier != nil {
+		modifier(k)
+	}
+
+	return parseAndVerifyConfig(k)
+}
+
+func parseAndVerifyConfig(k *koanf.Koanf) (*domain.AppConfig, error) {
 	var config *domain.AppConfig
 	config, err := unmarshal(k)
 	if err != nil {

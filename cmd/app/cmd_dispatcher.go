@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/knadh/koanf/v2"
 	"github.com/urfave/cli/v2"
@@ -21,14 +20,14 @@ type commandDispatcher interface {
 }
 
 type defaultCommandDispatcher struct {
-	loadProfile profileLoader
+	initializer initializer
 	fileReader  domain.FileReader
 	cmdExecutor commandExecutor
 }
 
-func newCommandDispatcher(loadProfile profileLoader, fileReader domain.FileReader, cmdExecutor commandExecutor) commandDispatcher {
+func newCommandDispatcher(initializer initializer, fileReader domain.FileReader, cmdExecutor commandExecutor) commandDispatcher {
 	return &defaultCommandDispatcher{
-		loadProfile: loadProfile,
+		initializer: initializer,
 		fileReader:  fileReader,
 		cmdExecutor: cmdExecutor,
 	}
@@ -36,11 +35,10 @@ func newCommandDispatcher(loadProfile profileLoader, fileReader domain.FileReade
 
 func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
 	if deploymentIds := c.StringSlice("deployment"); deploymentIds != nil && len(deploymentIds) > 0 {
-		appConfig, err := d.loadProfile(c)
+		appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, nil)
 		if err != nil {
 			return err
 		}
-		setLogger(appConfig)
 		d.cmdExecutor.executeDeployments(appConfig.CloudProviders, appConfig.Deployments, deploymentIds)
 		return nil
 	}
@@ -53,7 +51,8 @@ func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
 		}
 	}
 
-	appConfig, err := config.CreateEmpty(func(k *koanf.Koanf) {
+	// load & generate profile
+	appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, func(k *koanf.Koanf) {
 		_ = k.Set("cloud-providers.from-cli-1", domain.CloudProvider{
 			Provider:  c.String("provider"),
 			SecretId:  c.String("secret-id"),
@@ -77,11 +76,10 @@ func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
 }
 
 func (d *defaultCommandDispatcher) run(c *cli.Context) error {
-	appConfig, err := d.loadProfile(c)
+	appConfig, err := d.initializer.LoadProfileAndSetupLogger(c, nil)
 	if err != nil {
 		return err
 	}
-	setLogger(appConfig)
 
 	triggers := d.cmdExecutor.registerTriggers(appConfig.CloudProviders, appConfig.Deployments, appConfig.Triggers)
 

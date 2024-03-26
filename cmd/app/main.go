@@ -1,25 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
 	_ "github.com/ichenhe/cert-deployer/plugins"
+	"github.com/knadh/koanf/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path"
+	"strings"
 )
 
+// global logger
 var logger *zap.SugaredLogger
 
-func newZapLogEncoder() zapcore.Encoder {
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	encoder := zapcore.NewConsoleEncoder(encoderConfig)
-	return encoder
+type initializer interface {
+	// LoadProfileAndSetupLogger loads profile and setups logger if no errors.
+	LoadProfileAndSetupLogger(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error)
+}
+
+type initializerFunc func(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error)
+
+func (f initializerFunc) LoadProfileAndSetupLogger(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
+	return f(c, modifier)
 }
 
 func init() {
@@ -32,22 +37,20 @@ func init() {
 func main() {
 	defer func() { _ = logger.Sync() }()
 
-	defaultProfileLoader := func(c *cli.Context) (*domain.AppConfig, error) {
-		file := c.Path("profile")
-		appConfig, err := config.ReadConfig(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read profile: %w", err)
+	defaultInitializer := initializerFunc(func(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
+		if profile, err := config.CreateWithModifier(c, modifier); err == nil {
+			setupLogger(&profile.Log)
+			return profile, nil
+		} else {
+			return nil, err
 		}
-		return appConfig, nil
-	}
+	})
 
-	err := run(os.Args, newCommandDispatcher(defaultProfileLoader, domain.FileReaderFunc(os.ReadFile), newCommandExecutor()))
+	err := run(os.Args, newCommandDispatcher(defaultInitializer, domain.FileReaderFunc(os.ReadFile), newCommandExecutor()))
 	if err != nil {
 		logger.Fatal(err)
 	}
 }
-
-type profileLoader = func(c *cli.Context) (*domain.AppConfig, error)
 
 func run(args []string, cmdDispatcher commandDispatcher) error {
 	app := &cli.App{
@@ -55,9 +58,9 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 		Usage: "Deployer your https cert to various cloud services assets",
 		Flags: []cli.Flag{
 			&cli.PathFlag{
-				Name:  "profile",
-				Usage: "specify the config file manually",
-				Value: "cert-deployer.yaml",
+				Name:     "profile",
+				Usage:    "specify the config file manually",
+				Required: false,
 			},
 		},
 	}
@@ -119,10 +122,10 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 	return app.Run(args)
 }
 
-func setLogger(profile *domain.AppConfig) {
-	logConfig := profile.Log
+func setupLogger(logConfig *domain.LogConfig) {
 	logLevel := zapcore.InfoLevel
-	switch logConfig.Level {
+
+	switch strings.ToLower(logConfig.Level) {
 	case "debug":
 		logLevel = zapcore.DebugLevel
 	case "warn":
@@ -149,4 +152,12 @@ func setLogger(profile *domain.AppConfig) {
 		l := zap.New(core)
 		logger = l.Sugar()
 	}
+}
+
+func newZapLogEncoder() zapcore.Encoder {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+	return encoder
 }

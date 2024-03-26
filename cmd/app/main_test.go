@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
+	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/urfave/cli/v2"
@@ -13,9 +14,9 @@ import (
 )
 
 func Test_run(t *testing.T) {
-	profileLoader := func(c *cli.Context) (*domain.AppConfig, error) {
-		return config.DefaultConfig(), nil
-	}
+	initializer := initializerFunc(func(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
+		return config.CreateWithModifier(nil, modifier)
+	})
 	tests := []struct {
 		name       string
 		args       []string
@@ -78,7 +79,7 @@ func Test_run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmdDispatcher := newCommandDispatcher(profileLoader, tt.fileReader, tt.executor(t))
+			cmdDispatcher := newCommandDispatcher(initializer, tt.fileReader, tt.executor(t))
 			args := os.Args[0:1]
 			args = append(args, tt.args...)
 			if tt.waitFor > 0 {

@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -45,9 +46,13 @@ func (d *defaultCommandDispatcher) deploy(c *cli.Context) error {
 
 	// check arguments
 	requiredFlags := []string{"provider", "secret-id", "secret-key", "cert", "key", "type"}
+	providedFlags := make(map[string]struct{})
+	for _, flag := range c.FlagNames() {
+		providedFlags[flag] = struct{}{}
+	}
 	for _, flag := range requiredFlags {
-		if c.Generic(flag) == nil {
-			return fmt.Errorf("flags %v must be provided without --deployment", requiredFlags)
+		if _, ex := providedFlags[flag]; !ex {
+			return fmt.Errorf("flag [%s] must be provided without --deployment, run 'deploy --help' for details", strings.Join(requiredFlags, ", "))
 		}
 	}
 

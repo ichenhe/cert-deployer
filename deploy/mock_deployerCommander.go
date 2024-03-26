@@ -69,17 +69,17 @@ func (_c *MockdeployerCommander_DeployToAsset_Call) RunAndReturn(run func(domain
 	return _c
 }
 
-// DeployToAssetType provides a mock function with given fields: assetType, cert, key, deployErrorHandler
-func (_m *MockdeployerCommander) DeployToAssetType(assetType domain.AssetType, cert []byte, key []byte, deployErrorHandler func(domain.Asseter, error)) error {
-	ret := _m.Called(assetType, cert, key, deployErrorHandler)
+// DeployToAssetType provides a mock function with given fields: assetType, cert, key, onAssetsAcquired, onDeployResult
+func (_m *MockdeployerCommander) DeployToAssetType(assetType domain.AssetType, cert []byte, key []byte, onAssetsAcquired func([]domain.Asseter), onDeployResult func(domain.Asseter, error)) error {
+	ret := _m.Called(assetType, cert, key, onAssetsAcquired, onDeployResult)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeployToAssetType")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(domain.AssetType, []byte, []byte, func(domain.Asseter, error)) error); ok {
-		r0 = rf(assetType, cert, key, deployErrorHandler)
+	if rf, ok := ret.Get(0).(func(domain.AssetType, []byte, []byte, func([]domain.Asseter), func(domain.Asseter, error)) error); ok {
+		r0 = rf(assetType, cert, key, onAssetsAcquired, onDeployResult)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -96,14 +96,15 @@ type MockdeployerCommander_DeployToAssetType_Call struct {
 //   - assetType domain.AssetType
 //   - cert []byte
 //   - key []byte
-//   - deployErrorHandler func(domain.Asseter , error)
-func (_e *MockdeployerCommander_Expecter) DeployToAssetType(assetType interface{}, cert interface{}, key interface{}, deployErrorHandler interface{}) *MockdeployerCommander_DeployToAssetType_Call {
-	return &MockdeployerCommander_DeployToAssetType_Call{Call: _e.mock.On("DeployToAssetType", assetType, cert, key, deployErrorHandler)}
+//   - onAssetsAcquired func([]domain.Asseter)
+//   - onDeployResult func(domain.Asseter , error)
+func (_e *MockdeployerCommander_Expecter) DeployToAssetType(assetType interface{}, cert interface{}, key interface{}, onAssetsAcquired interface{}, onDeployResult interface{}) *MockdeployerCommander_DeployToAssetType_Call {
+	return &MockdeployerCommander_DeployToAssetType_Call{Call: _e.mock.On("DeployToAssetType", assetType, cert, key, onAssetsAcquired, onDeployResult)}
 }
 
-func (_c *MockdeployerCommander_DeployToAssetType_Call) Run(run func(assetType domain.AssetType, cert []byte, key []byte, deployErrorHandler func(domain.Asseter, error))) *MockdeployerCommander_DeployToAssetType_Call {
+func (_c *MockdeployerCommander_DeployToAssetType_Call) Run(run func(assetType domain.AssetType, cert []byte, key []byte, onAssetsAcquired func([]domain.Asseter), onDeployResult func(domain.Asseter, error))) *MockdeployerCommander_DeployToAssetType_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(domain.AssetType), args[1].([]byte), args[2].([]byte), args[3].(func(domain.Asseter, error)))
+		run(args[0].(domain.AssetType), args[1].([]byte), args[2].([]byte), args[3].(func([]domain.Asseter)), args[4].(func(domain.Asseter, error)))
 	})
 	return _c
 }
@@ -113,7 +114,7 @@ func (_c *MockdeployerCommander_DeployToAssetType_Call) Return(_a0 error) *Mockd
 	return _c
 }
 
-func (_c *MockdeployerCommander_DeployToAssetType_Call) RunAndReturn(run func(domain.AssetType, []byte, []byte, func(domain.Asseter, error)) error) *MockdeployerCommander_DeployToAssetType_Call {
+func (_c *MockdeployerCommander_DeployToAssetType_Call) RunAndReturn(run func(domain.AssetType, []byte, []byte, func([]domain.Asseter), func(domain.Asseter, error)) error) *MockdeployerCommander_DeployToAssetType_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -28,11 +28,23 @@ func DefaultConfig() *domain.AppConfig {
 
 func ReadConfig(configFile string) (*domain.AppConfig, error) {
 	var k = createDefaultConfig()
-
 	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
+	return parseAndVerifyConfig(k)
+}
 
+// CreateEmpty creates an empty configuration but with default values. An optional modifier can be
+// given to modify the configuration before it is parsed and unmarshalled.
+func CreateEmpty(modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
+	var k = createDefaultConfig()
+	if modifier != nil {
+		modifier(k)
+	}
+	return parseAndVerifyConfig(k)
+}
+
+func parseAndVerifyConfig(k *koanf.Koanf) (*domain.AppConfig, error) {
 	var config *domain.AppConfig
 	config, err := unmarshal(k)
 	if err != nil {

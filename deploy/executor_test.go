@@ -60,7 +60,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 				deployerFactory: successDeployFactory(),
 				deployerCommander: func() deployerCommander {
 					c := NewMockdeployerCommander(t)
-					c.EXPECT().DeployToAssetType(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+					c.EXPECT().DeployToAssetType(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 					return c
 				}(),
 			},

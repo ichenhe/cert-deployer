@@ -16,7 +16,7 @@ type deployerCommander interface {
 	DeployToAsset(assetType domain.AssetType, assetId string, cert []byte, key []byte) error
 
 	// DeployToAssetType deploys the certificate to all assets with given type.
-	DeployToAssetType(assetType domain.AssetType, cert, key []byte, deployErrorHandler func(asset domain.Asseter, err error)) error
+	DeployToAssetType(assetType domain.AssetType, cert, key []byte, onAssetsAcquired func(assets []domain.Asseter), onDeployResult func(asset domain.Asseter, err error)) error
 }
 
 var _ deployerCommander = &cachedDeployerCommander{}
@@ -60,7 +60,10 @@ func (c *cachedDeployerCommander) refreshCache(assetType domain.AssetType) error
 
 // DeployToAssetType deploys the cert to all assets with given type. This function will refresh the
 // cache before executing the deployment.
-func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, cert, key []byte, deployErrorHandler func(asset domain.Asseter, err error)) error {
+func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, cert, key []byte,
+	onAssetsAcquired func(assets []domain.Asseter),
+	onDeployResult func(asset domain.Asseter, err error)) error {
+
 	c.mu.Lock()
 	if err := c.refreshCache(assetType); err != nil {
 		c.mu.Unlock()
@@ -73,9 +76,18 @@ func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, 
 	}
 	c.mu.Unlock()
 
-	_, errors := c.deployer.Deploy(assets, cert, key)
-	for _, deployError := range errors {
-		deployErrorHandler(deployError.Asset, deployError.Err)
+	if onAssetsAcquired != nil {
+		onAssetsAcquired(assets)
+	}
+	for _, asset := range assets {
+		_, errors := c.deployer.Deploy([]domain.Asseter{asset}, cert, key)
+		var err error
+		if errors != nil && len(errors) > 0 {
+			err = errors[0]
+		}
+		if onDeployResult != nil {
+			onDeployResult(asset, err)
+		}
 	}
 	return nil
 }

@@ -76,7 +76,7 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployme
 	for _, asset := range deployment.Assets {
 		assetType, err := domain.AssetTypeFromString(asset.Type)
 		if err != nil {
-			n.logger.Warnf("invalid asset type '%s'", asset.Type)
+			n.logger.Warnf("invalid asset type '%s', ignore", asset.Type)
 			continue
 		}
 
@@ -85,13 +85,24 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployme
 			if err = commander.DeployToAsset(assetType, asset.Id, certData, keyData); err != nil {
 				n.logger.Warnf("failed to deploy to %s asset '%s': %v", asset.Type, asset.Id, err)
 				// continue to deploy other assets, won't be considered as a fail.
+			} else {
+				n.logger.Infof("%s asset '%s' deployed successfully", asset.Type, asset.Id)
 			}
 		} else {
 			n.logger.Debugf("deploying to all %s assets...", asset.Type)
-			if err = commander.DeployToAssetType(assetType, certData, keyData, func(asset domain.Asseter, err error) {
+
+			onAssetsAcquired := func(assets []domain.Asseter) {
+				n.logger.Infof("a total of %d assets were acquired, deploying...", len(assets))
+			}
+			onDeployResult := func(asset domain.Asseter, err error) {
 				info := asset.GetBaseInfo()
-				n.logger.Warnf("failed to deploy to %s asset '%s': %v", info.Type, info.Id, err)
-			}); err != nil {
+				if err == nil {
+					n.logger.Infof("%s asset '%s' deployed successfully", info.Type, info.Id)
+				} else {
+					n.logger.Warnf("failed to deploy to %s asset '%s': %v", info.Type, info.Id, err)
+				}
+			}
+			if err = commander.DeployToAssetType(assetType, certData, keyData, onAssetsAcquired, onDeployResult); err != nil {
 				n.logger.Warnf("failed to deploy to all %s assets: %v", assetType, err)
 				// continue to deploy other assets, won't be considered as a fail.
 			}

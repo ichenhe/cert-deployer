@@ -88,9 +88,27 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 					Required: false,
 					Category: "Custom:",
 				},
-				&cli.StringSliceFlag{
+				&cli.StringFlag{
 					Name:     "type",
 					Usage:    "asset types, e.g. cdn",
+					Required: false,
+					Category: "Custom:",
+				},
+				&cli.StringFlag{
+					Name:     "provider",
+					Usage:    "cloud service provider, must in support list, e.g. TencentCloud",
+					Required: false,
+					Category: "Custom:",
+				},
+				&cli.StringFlag{
+					Name:     "secret-id",
+					Usage:    "api secret id of the provider",
+					Required: false,
+					Category: "Custom:",
+				},
+				&cli.StringFlag{
+					Name:     "secret-key",
+					Usage:    "api secret key of the provider",
 					Required: false,
 					Category: "Custom:",
 				},

@@ -31,7 +31,7 @@ func (d *defaultCommandExecutor) executeDeployments(providers map[string]domain.
 			continue
 		} else {
 			logger.Debugf("execute deployment '%s'...", deploymentId)
-			err := deploy.NewDeploymentExecutor(logger, providers).ExecuteDeployment(d)
+			err := deploy.NewDeploymentExecutor(logger.With("deployment", deploymentId), providers).ExecuteDeployment(d)
 			if err != nil {
 				logger.Warnf("failed to deploy '%s': %v", deploymentId, err)
 			} else {

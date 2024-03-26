@@ -93,7 +93,7 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 				},
 				&cli.StringFlag{
 					Name:     "type",
-					Usage:    "asset types, e.g. cdn",
+					Usage:    "asset type, e.g. cdn",
 					Required: false,
 					Category: "Custom:",
 				},

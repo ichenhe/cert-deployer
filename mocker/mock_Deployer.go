@@ -82,6 +82,52 @@ func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func([]domain.Asseter, []by
 	return _c
 }
 
+// IsAssetTypeSupported provides a mock function with given fields: assetType
+func (_m *MockDeployer) IsAssetTypeSupported(assetType string) bool {
+	ret := _m.Called(assetType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsAssetTypeSupported")
+	}
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(assetType)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// MockDeployer_IsAssetTypeSupported_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsAssetTypeSupported'
+type MockDeployer_IsAssetTypeSupported_Call struct {
+	*mock.Call
+}
+
+// IsAssetTypeSupported is a helper method to define mock.On call
+//   - assetType string
+func (_e *MockDeployer_Expecter) IsAssetTypeSupported(assetType interface{}) *MockDeployer_IsAssetTypeSupported_Call {
+	return &MockDeployer_IsAssetTypeSupported_Call{Call: _e.mock.On("IsAssetTypeSupported", assetType)}
+}
+
+func (_c *MockDeployer_IsAssetTypeSupported_Call) Run(run func(assetType string)) *MockDeployer_IsAssetTypeSupported_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockDeployer_IsAssetTypeSupported_Call) Return(_a0 bool) *MockDeployer_IsAssetTypeSupported_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDeployer_IsAssetTypeSupported_Call) RunAndReturn(run func(string) bool) *MockDeployer_IsAssetTypeSupported_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListApplicableAssets provides a mock function with given fields: assetType, cert
 func (_m *MockDeployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
 	ret := _m.Called(assetType, cert)

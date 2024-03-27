@@ -7,6 +7,8 @@ import (
 )
 
 type Deployer interface {
+	IsAssetTypeSupported(assetType string) bool
+
 	// ListAssets fetches all assets that match the given type.
 	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
 	ListAssets(assetType string) ([]Asseter, error)

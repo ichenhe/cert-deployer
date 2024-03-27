@@ -11,6 +11,7 @@ import (
 //
 // Typically, the implementation should contain field to save the domain.Deployer.
 type deployerCommander interface {
+	IsAssetTypeSupported(assetType string) bool
 
 	// DeployToAsset deploys the certificate to a specific asset using the inner deployer.
 	DeployToAsset(assetType string, assetId string, cert []byte, key []byte) error
@@ -37,6 +38,10 @@ func newCachedDeployerCommander(deployer domain.Deployer) *cachedDeployerCommand
 		cachedAssets: make(map[string]domain.Asseter),
 		cachedTypes:  make(map[string][]string),
 	}
+}
+
+func (c *cachedDeployerCommander) IsAssetTypeSupported(assetType string) bool {
+	return c.deployer.IsAssetTypeSupported(assetType)
 }
 
 func (c *cachedDeployerCommander) refreshCache(assetType string) error {

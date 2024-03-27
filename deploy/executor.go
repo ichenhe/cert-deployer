@@ -74,6 +74,11 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployme
 		return err
 	}
 	for _, asset := range deployment.Assets {
+		if !commander.IsAssetTypeSupported(asset.Type) {
+			n.logger.Warnf("invalid asset type '%s', ignore", asset.Type)
+			continue
+		}
+
 		if asset.Id != "" {
 			n.logger.Debugf("deploying to %s asset '%s'...", asset.Type, asset.Id)
 			if err = commander.DeployToAsset(asset.Type, asset.Id, certData, keyData); err != nil {

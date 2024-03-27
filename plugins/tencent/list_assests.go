@@ -8,17 +8,17 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 )
 
-func (d *deployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter, error) {
+func (d *deployer) ListAssets(assetType string) ([]domain.Asseter, error) {
 	switch assetType {
-	case domain.TypeCdn:
+	case CDN:
 		return d.listCDNAssets()
 	}
 	return nil, nil
 }
 
-func (d *deployer) ListApplicableAssets(assetType domain.AssetType, cert []byte) ([]domain.Asseter, error) {
+func (d *deployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
 	switch assetType {
-	case domain.TypeCdn:
+	case CDN:
 		return d.listApplicableCDNAssets(cert)
 	}
 	return nil, nil
@@ -39,7 +39,7 @@ func (d *deployer) listCDNAssets() ([]domain.Asseter, error) {
 			Asset: domain.Asset{
 				Id:       *domainName.ResourceId,
 				Name:     *domainName.Domain,
-				Type:     domain.TypeCdn,
+				Type:     CDN,
 				Provider: Provider,
 				Available: *domainName.Disable == "normal" &&
 					(*domainName.Status == "online" || *domainName.Status == "processing"),
@@ -57,7 +57,7 @@ func (d *deployer) listApplicableCDNAssets(cert []byte) ([]domain.Asseter, error
 	}
 	req := cdn.NewDescribeCertDomainsRequest()
 	req.Cert = common.StringPtr(base64.StdEncoding.EncodeToString(cert))
-	req.Product = common.StringPtr("cdn")
+	req.Product = common.StringPtr(CDN)
 	resp, err := client.DescribeCertDomains(req)
 	if err != nil {
 		return nil, err

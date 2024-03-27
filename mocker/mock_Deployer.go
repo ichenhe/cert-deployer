@@ -83,7 +83,7 @@ func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func([]domain.Asseter, []by
 }
 
 // ListApplicableAssets provides a mock function with given fields: assetType, cert
-func (_m *MockDeployer) ListApplicableAssets(assetType domain.AssetType, cert []byte) ([]domain.Asseter, error) {
+func (_m *MockDeployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
 	ret := _m.Called(assetType, cert)
 
 	if len(ret) == 0 {
@@ -92,10 +92,10 @@ func (_m *MockDeployer) ListApplicableAssets(assetType domain.AssetType, cert []
 
 	var r0 []domain.Asseter
 	var r1 error
-	if rf, ok := ret.Get(0).(func(domain.AssetType, []byte) ([]domain.Asseter, error)); ok {
+	if rf, ok := ret.Get(0).(func(string, []byte) ([]domain.Asseter, error)); ok {
 		return rf(assetType, cert)
 	}
-	if rf, ok := ret.Get(0).(func(domain.AssetType, []byte) []domain.Asseter); ok {
+	if rf, ok := ret.Get(0).(func(string, []byte) []domain.Asseter); ok {
 		r0 = rf(assetType, cert)
 	} else {
 		if ret.Get(0) != nil {
@@ -103,7 +103,7 @@ func (_m *MockDeployer) ListApplicableAssets(assetType domain.AssetType, cert []
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(domain.AssetType, []byte) error); ok {
+	if rf, ok := ret.Get(1).(func(string, []byte) error); ok {
 		r1 = rf(assetType, cert)
 	} else {
 		r1 = ret.Error(1)
@@ -118,15 +118,15 @@ type MockDeployer_ListApplicableAssets_Call struct {
 }
 
 // ListApplicableAssets is a helper method to define mock.On call
-//   - assetType domain.AssetType
+//   - assetType string
 //   - cert []byte
 func (_e *MockDeployer_Expecter) ListApplicableAssets(assetType interface{}, cert interface{}) *MockDeployer_ListApplicableAssets_Call {
 	return &MockDeployer_ListApplicableAssets_Call{Call: _e.mock.On("ListApplicableAssets", assetType, cert)}
 }
 
-func (_c *MockDeployer_ListApplicableAssets_Call) Run(run func(assetType domain.AssetType, cert []byte)) *MockDeployer_ListApplicableAssets_Call {
+func (_c *MockDeployer_ListApplicableAssets_Call) Run(run func(assetType string, cert []byte)) *MockDeployer_ListApplicableAssets_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(domain.AssetType), args[1].([]byte))
+		run(args[0].(string), args[1].([]byte))
 	})
 	return _c
 }
@@ -136,13 +136,13 @@ func (_c *MockDeployer_ListApplicableAssets_Call) Return(_a0 []domain.Asseter, _
 	return _c
 }
 
-func (_c *MockDeployer_ListApplicableAssets_Call) RunAndReturn(run func(domain.AssetType, []byte) ([]domain.Asseter, error)) *MockDeployer_ListApplicableAssets_Call {
+func (_c *MockDeployer_ListApplicableAssets_Call) RunAndReturn(run func(string, []byte) ([]domain.Asseter, error)) *MockDeployer_ListApplicableAssets_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListAssets provides a mock function with given fields: assetType
-func (_m *MockDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter, error) {
+func (_m *MockDeployer) ListAssets(assetType string) ([]domain.Asseter, error) {
 	ret := _m.Called(assetType)
 
 	if len(ret) == 0 {
@@ -151,10 +151,10 @@ func (_m *MockDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter
 
 	var r0 []domain.Asseter
 	var r1 error
-	if rf, ok := ret.Get(0).(func(domain.AssetType) ([]domain.Asseter, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) ([]domain.Asseter, error)); ok {
 		return rf(assetType)
 	}
-	if rf, ok := ret.Get(0).(func(domain.AssetType) []domain.Asseter); ok {
+	if rf, ok := ret.Get(0).(func(string) []domain.Asseter); ok {
 		r0 = rf(assetType)
 	} else {
 		if ret.Get(0) != nil {
@@ -162,7 +162,7 @@ func (_m *MockDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(domain.AssetType) error); ok {
+	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(assetType)
 	} else {
 		r1 = ret.Error(1)
@@ -177,14 +177,14 @@ type MockDeployer_ListAssets_Call struct {
 }
 
 // ListAssets is a helper method to define mock.On call
-//   - assetType domain.AssetType
+//   - assetType string
 func (_e *MockDeployer_Expecter) ListAssets(assetType interface{}) *MockDeployer_ListAssets_Call {
 	return &MockDeployer_ListAssets_Call{Call: _e.mock.On("ListAssets", assetType)}
 }
 
-func (_c *MockDeployer_ListAssets_Call) Run(run func(assetType domain.AssetType)) *MockDeployer_ListAssets_Call {
+func (_c *MockDeployer_ListAssets_Call) Run(run func(assetType string)) *MockDeployer_ListAssets_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(domain.AssetType))
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -194,7 +194,7 @@ func (_c *MockDeployer_ListAssets_Call) Return(_a0 []domain.Asseter, _a1 error) 
 	return _c
 }
 
-func (_c *MockDeployer_ListAssets_Call) RunAndReturn(run func(domain.AssetType) ([]domain.Asseter, error)) *MockDeployer_ListAssets_Call {
+func (_c *MockDeployer_ListAssets_Call) RunAndReturn(run func(string) ([]domain.Asseter, error)) *MockDeployer_ListAssets_Call {
 	_c.Call.Return(run)
 	return _c
 }

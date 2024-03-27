@@ -53,7 +53,7 @@ func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (dep
 		}
 
 		switch info.Type {
-		case domain.TypeCdn:
+		case CDN:
 			if cdnAsset, ok := item.(*CdnAsset); !ok {
 				deployErrs = append(deployErrs, domain.NewDeployError(item,
 					errors.New("can not convert asset to TencentCdnAsset")))

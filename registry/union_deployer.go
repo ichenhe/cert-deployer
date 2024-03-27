@@ -49,7 +49,7 @@ func NewUnionDeployer(logger *zap.SugaredLogger, providersConfig map[string]doma
 //
 // Note: Returning error does not mean that other return values are invalid.
 // It may just be some searcher execution failures.
-func (u *UnionDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter, *domain.ErrorCollection) {
+func (u *UnionDeployer) ListAssets(assetType string) ([]domain.Asseter, *domain.ErrorCollection) {
 	r := make([]domain.Asseter, 0, 64)
 	errs := make([]error, 0)
 	for _, v := range u.deployers {
@@ -68,7 +68,7 @@ func (u *UnionDeployer) ListAssets(assetType domain.AssetType) ([]domain.Asseter
 //
 // Note: Returning error does not mean that other return values are invalid.
 // It may just be some searcher execution failures.
-func (u *UnionDeployer) ListApplicableAssets(assetType domain.AssetType, cert []byte) ([]domain.Asseter,
+func (u *UnionDeployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter,
 	*domain.ErrorCollection) {
 	r := make([]domain.Asseter, 0, 64)
 	errs := make([]error, 0)

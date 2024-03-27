@@ -13,10 +13,10 @@ import (
 type deployerCommander interface {
 
 	// DeployToAsset deploys the certificate to a specific asset using the inner deployer.
-	DeployToAsset(assetType domain.AssetType, assetId string, cert []byte, key []byte) error
+	DeployToAsset(assetType string, assetId string, cert []byte, key []byte) error
 
 	// DeployToAssetType deploys the certificate to all assets with given type.
-	DeployToAssetType(assetType domain.AssetType, cert, key []byte, onAssetsAcquired func(assets []domain.Asseter), onDeployResult func(asset domain.Asseter, err error)) error
+	DeployToAssetType(assetType string, cert, key []byte, onAssetsAcquired func(assets []domain.Asseter), onDeployResult func(asset domain.Asseter, err error)) error
 }
 
 var _ deployerCommander = &cachedDeployerCommander{}
@@ -27,7 +27,7 @@ type cachedDeployerCommander struct {
 	deployer domain.Deployer
 
 	cachedAssets map[string]domain.Asseter
-	cachedTypes  map[domain.AssetType][]string // assetType -> assetId
+	cachedTypes  map[string][]string // assetType -> assetIds
 	mu           sync.Mutex
 }
 
@@ -35,11 +35,11 @@ func newCachedDeployerCommander(deployer domain.Deployer) *cachedDeployerCommand
 	return &cachedDeployerCommander{
 		deployer:     deployer,
 		cachedAssets: make(map[string]domain.Asseter),
-		cachedTypes:  make(map[domain.AssetType][]string),
+		cachedTypes:  make(map[string][]string),
 	}
 }
 
-func (c *cachedDeployerCommander) refreshCache(assetType domain.AssetType) error {
+func (c *cachedDeployerCommander) refreshCache(assetType string) error {
 	assets, err := c.deployer.ListAssets(assetType)
 	if err != nil {
 		return fmt.Errorf("failed to list assests: %w", err)
@@ -58,7 +58,7 @@ func (c *cachedDeployerCommander) refreshCache(assetType domain.AssetType) error
 	return nil
 }
 
-func (c *cachedDeployerCommander) addToCache(assetType domain.AssetType, assets []domain.Asseter) {
+func (c *cachedDeployerCommander) addToCache(assetType string, assets []domain.Asseter) {
 	for _, asset := range assets {
 		id := asset.GetBaseInfo().Id
 		c.cachedAssets[id] = asset
@@ -68,7 +68,7 @@ func (c *cachedDeployerCommander) addToCache(assetType domain.AssetType, assets 
 
 // DeployToAssetType deploys the cert to all assets with given type.
 // This function does not use the cache but updates the cache with assets it acquired.
-func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, cert, key []byte,
+func (c *cachedDeployerCommander) DeployToAssetType(assetType string, cert, key []byte,
 	onAssetsAcquired func(assets []domain.Asseter),
 	onDeployResult func(asset domain.Asseter, err error)) error {
 
@@ -96,7 +96,7 @@ func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, 
 	return nil
 }
 
-func (c *cachedDeployerCommander) retrieveAsset(assetType domain.AssetType, assetId string) (domain.Asseter, error) {
+func (c *cachedDeployerCommander) retrieveAsset(assetType string, assetId string) (domain.Asseter, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if asset, ex := c.cachedAssets[assetId]; ex {
@@ -114,7 +114,7 @@ func (c *cachedDeployerCommander) retrieveAsset(assetType domain.AssetType, asse
 }
 
 // DeployToAsset deploys the cert to asset with given id.
-func (c *cachedDeployerCommander) DeployToAsset(assetType domain.AssetType, assetId string, cert []byte, key []byte) error {
+func (c *cachedDeployerCommander) DeployToAsset(assetType string, assetId string, cert []byte, key []byte) error {
 	asset, err := c.retrieveAsset(assetType, assetId)
 	if err != nil {
 		return err

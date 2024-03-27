@@ -6,6 +6,10 @@ import (
 
 const Provider = "TencentCloud"
 
+const (
+	CDN = "cdn"
+)
+
 type CdnAsset struct {
 	domain.Asset
 	Domain string

@@ -9,11 +9,11 @@ import (
 type Deployer interface {
 	// ListAssets fetches all assets that match the given type.
 	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
-	ListAssets(assetType AssetType) ([]Asseter, error)
+	ListAssets(assetType string) ([]Asseter, error)
 
 	// ListApplicableAssets fetch all assets that match the given type and cert.
 	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
-	ListApplicableAssets(assetType AssetType, cert []byte) ([]Asseter, error)
+	ListApplicableAssets(assetType string, cert []byte) ([]Asseter, error)
 
 	// Deploy the given pem cert to the all assets.
 	//

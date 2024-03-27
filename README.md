@@ -187,5 +187,5 @@ Congratulations 🥳
 
 This is a statement for Chinese mainland only.
 
-坚持非必要不开源，推动大陆开源事业有序绿色发展，倒逼开源项目精品化。谨防恶意开源、恶意编程。本项目自愧不如，故仅在 GitHub 开源。任何人请勿 clone 到 Gitee 等大陆平台（无论是否公开）。我不保证代码里不会出现敏感字符串，例如 `freeSpace = make([]byte, 64, 128)`，以及一些有不良倾向的引导，例如 `go run helloworld.go`，故若您执意 clone 到大陆平台，您需要独自承担一切后果。
+我们不会故意，但亦不能保证整个仓库中不包含（潜在的）敏感内容，因此不鼓励任何人将本仓库镜像到大陆平台。若您执意这么做，后果自行承担。
 

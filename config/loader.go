@@ -13,7 +13,10 @@ import (
 
 func createDefaultConfig() (k *koanf.Koanf) {
 	k = koanf.New(".")
-	_ = k.Set("log.enable-file", false)
+	logDrivers := []domain.LogDriver{
+		{Driver: "stdout", Level: "info"},
+	}
+	_ = k.Set("log-drivers", logDrivers)
 	return
 }
 

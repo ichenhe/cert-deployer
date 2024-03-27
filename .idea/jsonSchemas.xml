@@ -13,10 +13,10 @@
               <option name="patterns">
                 <list>
                   <Item>
-                    <option name="path" value="config/config.tmpl.yaml" />
+                    <option name="path" value="cert-deployer.yaml" />
                   </Item>
                   <Item>
-                    <option name="path" value="cert-deployer.yaml" />
+                    <option name="path" value="config/config.tmpl.yaml" />
                   </Item>
                 </list>
               </option>

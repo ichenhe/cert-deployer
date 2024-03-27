@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/ichenhe/cert-deployer/config"
 	"github.com/ichenhe/cert-deployer/domain"
 	_ "github.com/ichenhe/cert-deployer/plugins"
@@ -9,8 +10,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
-	"path"
-	"strings"
 )
 
 // global logger
@@ -28,10 +27,8 @@ func (f initializerFunc) LoadProfileAndSetupLogger(c *cli.Context, modifier func
 }
 
 func init() {
-	encoder := newZapLogEncoder()
-	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
-	l := zap.New(core, zap.AddCaller())
-	logger = l.Sugar()
+	core := zapcore.NewCore(createLoggerEncoder("fluent"), zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
+	logger = zap.New(core, zap.AddCaller()).Sugar()
 }
 
 func main() {
@@ -39,7 +36,9 @@ func main() {
 
 	defaultInitializer := initializerFunc(func(c *cli.Context, modifier func(k *koanf.Koanf)) (*domain.AppConfig, error) {
 		if profile, err := config.CreateWithModifier(c, modifier); err == nil {
-			setupLogger(&profile.Log)
+			if err := setupLogger(profile.LogDrivers); err != nil {
+				return nil, fmt.Errorf("failed to setup logger: %w", err)
+			}
 			return profile, nil
 		} else {
 			return nil, err
@@ -120,44 +119,4 @@ func run(args []string, cmdDispatcher commandDispatcher) error {
 		},
 	}
 	return app.Run(args)
-}
-
-func setupLogger(logConfig *domain.LogConfig) {
-	logLevel := zapcore.InfoLevel
-
-	switch strings.ToLower(logConfig.Level) {
-	case "debug":
-		logLevel = zapcore.DebugLevel
-	case "warn":
-		logLevel = zapcore.WarnLevel
-	case "error":
-		logLevel = zap.ErrorLevel
-	default:
-		logLevel = zap.InfoLevel
-	}
-
-	if logConfig.EnableFile {
-		var f *os.File
-		var err error
-		if !domain.IsDir(logConfig.FileDir) {
-			_ = os.MkdirAll(logConfig.FileDir, 0755)
-		}
-		if f, err = os.OpenFile(path.Join(logConfig.FileDir, "cert-deployer.log"),
-			os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755); err != nil {
-			logger.Panicf("failed to create log file: %v", err)
-		}
-
-		multiSyncer := zapcore.NewMultiWriteSyncer(zapcore.AddSync(f), zapcore.AddSync(os.Stdout))
-		core := zapcore.NewCore(newZapLogEncoder(), multiSyncer, logLevel)
-		l := zap.New(core)
-		logger = l.Sugar()
-	}
-}
-
-func newZapLogEncoder() zapcore.Encoder {
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	encoder := zapcore.NewConsoleEncoder(encoderConfig)
-	return encoder
 }

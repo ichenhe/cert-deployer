@@ -1,10 +1,17 @@
 package domain
 
 type AppConfig struct {
-	Log            LogConfig                 `koanf:"log"`
+	LogDrivers     []LogDriver               `koanf:"log-drivers"`
 	CloudProviders map[string]CloudProvider  `koanf:"cloud-providers"`
 	Deployments    map[string]Deployment     `koanf:"deployments"`
 	Triggers       map[string]TriggerDefiner `koanf:"-"` // this field is set manually
+}
+
+type LogDriver struct {
+	Driver  string         `koanf:"driver"`
+	Format  string         `koanf:"format"` // json or fluent
+	Level   string         `koanf:"level"`
+	Options map[string]any `koanf:"options"`
 }
 
 type LogConfig struct {

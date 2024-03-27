@@ -3,28 +3,53 @@
   "$id": "https://cert-deployer.chenhe.me/config.schema.json",
   "type": "object",
   "properties": {
-    "log": {
-      "description": "Configuration of log output.",
-      "type": "object",
-      "properties": {
-        "enable-file": {
-          "description": "Whether to export to a file.",
-          "type": "boolean",
-          "default": false
+    "log-drivers": {
+      "description": "Configuration of logging outputs. default: write to stdout with info level",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "driver": {
+            "description": "Driver controls where the logs are written to.",
+            "type": "string",
+            "enum": [
+              "file",
+              "stdout"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "fluent"
+            ],
+            "default": "fluent"
+          },
+          "level": {
+            "description": "The minimum level of logs to be output. default: info",
+            "type": "string",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ],
+            "default": "info"
+          },
+          "options": {
+            "description": "Driver specific options.",
+            "type": "object"
+          }
         },
-        "file-dir": {
-          "description": "The directory where the log files are saved.",
-          "type": "string"
-        },
-        "level": {
-          "type": "string",
-          "enum": [
-            "debug",
-            "info",
-            "warn",
-            "error"
-          ]
-        }
+        "required": [
+          "driver"
+        ],
+        "allOf": [
+          {
+            "$ref": "#/$defs/log-drivers/file"
+          }
+        ],
+        "additionalProperties": false
       }
     },
     "cloud-providers": {
@@ -142,6 +167,37 @@
     }
   },
   "$defs": {
+    "log-drivers": {
+      "file": {
+        "if": {
+          "properties": {
+            "driver": {
+              "const": "file"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "options": {
+              "properties": {
+                "file": {
+                  "description": "The file where logs are written to, can not be a folder.",
+                  "type": "string",
+                  "pattern": "[^/\\\\]$"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "options"
+          ]
+        }
+      }
+    },
     "trigger-if": {
       "file_monitoring": {
         "if": {

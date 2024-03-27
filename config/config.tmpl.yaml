@@ -1,10 +1,10 @@
-log:
-  # whether to export to a file
-  enable-file: false
-  # the directory where the log files are saved
-  file-dir: ./log
-  # debug / info / warn / error
-  level: info
+log-drivers:
+  - driver: stdout
+    level: info
+#  - driver: file
+#    level: info
+#    options:
+#      file: "./log"
 
 cloud-providers:
   example:

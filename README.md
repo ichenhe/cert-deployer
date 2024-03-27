@@ -158,6 +158,17 @@ acme.sh --issue \
 
 After that, hook command will be saved and apply to `--renew` or `--cron` commands as well. Try `acme.sh --renew -d www.example.com --force` to test.
 
+## Migrating from v0.1
+
+Legacy usage is no longer supported, which means you shouldn't specify the cloud provider in profile while provide the target asset or cert file via cli.
+
+Instead, you can either:
+
+- Execute fully custom deployment as described in *quck start*.
+- Define everything in profile as described in *pre-defined deployment*.
+
+In addition this, you are encouraged to use *trigger* to integrate with ACME client instead of hook, which is more easier and clearer.
+
 ## Add plugins
 
 If you want to make some contributions to add more back-end support, in general, the steps are as follows：

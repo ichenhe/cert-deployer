@@ -58,22 +58,26 @@ func (c *cachedDeployerCommander) refreshCache(assetType domain.AssetType) error
 	return nil
 }
 
-// DeployToAssetType deploys the cert to all assets with given type. This function will refresh the
-// cache before executing the deployment.
+func (c *cachedDeployerCommander) addToCache(assetType domain.AssetType, assets []domain.Asseter) {
+	for _, asset := range assets {
+		id := asset.GetBaseInfo().Id
+		c.cachedAssets[id] = asset
+		c.cachedTypes[assetType] = append(c.cachedTypes[assetType], id)
+	}
+}
+
+// DeployToAssetType deploys the cert to all assets with given type.
+// This function does not use the cache but updates the cache with assets it acquired.
 func (c *cachedDeployerCommander) DeployToAssetType(assetType domain.AssetType, cert, key []byte,
 	onAssetsAcquired func(assets []domain.Asseter),
 	onDeployResult func(asset domain.Asseter, err error)) error {
 
+	assets, err := c.deployer.ListApplicableAssets(assetType, cert)
+	if err != nil {
+		return fmt.Errorf("failed to list assests: %w", err)
+	}
 	c.mu.Lock()
-	if err := c.refreshCache(assetType); err != nil {
-		c.mu.Unlock()
-		return err
-	}
-
-	assets := make([]domain.Asseter, 0)
-	for _, id := range c.cachedTypes[assetType] {
-		assets = append(assets, c.cachedAssets[id])
-	}
+	c.addToCache(assetType, assets)
 	c.mu.Unlock()
 
 	if onAssetsAcquired != nil {

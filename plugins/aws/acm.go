@@ -7,8 +7,26 @@ import (
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
 )
 
+var _ acmApi = &acm.Client{}
+
+// acmApi abstracts the functions used in acm.Client for testing purposes.
+//
+// All functions in this interface must be the same as in acm.Client to make sure acm.Client is a
+// valid implementation.
+type acmApi interface {
+	DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
+
+	ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
+
+	ImportCertificate(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
+
+	ListTagsForCertificate(ctx context.Context, params *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
+
+	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
+}
+
 type acmCertFinder interface {
-	GetAcmClient() *acm.Client
+	GetAcmApi() acmApi
 
 	// FindCertInACM finds cert saved in the bundle from ACM (AWS Certificate Manager).
 	// Returns ARN (Amazon Resource Name) of the cert if found, otherwise "".
@@ -24,9 +42,9 @@ type acmCertFinder interface {
 
 var _ acmCertFinder = &cachedAcmCertFinder{}
 
-func newCachedAcmCertFinder(acmClient *acm.Client) *cachedAcmCertFinder {
+func newCachedAcmCertFinder(acmApi acmApi) *cachedAcmCertFinder {
 	return &cachedAcmCertFinder{
-		client: acmClient,
+		api: acmApi,
 
 		cachedCertSummary: make(map[string]acmTypes.CertificateSummary),
 		cachedCerts:       make(map[string]string),
@@ -39,7 +57,7 @@ func newCachedAcmCertFinder(acmClient *acm.Client) *cachedAcmCertFinder {
 //   - Must be notified immediately after adding/removing a certificate.
 //   - Recommended for continuous deployment only - do not cache for a long time.
 type cachedAcmCertFinder struct {
-	client *acm.Client
+	api acmApi
 
 	// runtime
 	cachedCertSummary map[string]acmTypes.CertificateSummary // arn -> summary
@@ -55,8 +73,8 @@ func (f *cachedAcmCertFinder) NotifyCertDeleted(arn string) {
 	delete(f.cachedCerts, arn)
 }
 
-func (f *cachedAcmCertFinder) GetAcmClient() *acm.Client {
-	return f.client
+func (f *cachedAcmCertFinder) GetAcmApi() acmApi {
+	return f.api
 }
 
 func (f *cachedAcmCertFinder) FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, err error) {
@@ -79,9 +97,6 @@ func (f *cachedAcmCertFinder) FindCertInACM(ctx context.Context, certBundle *cer
 	// find in candidates
 	for _, summary := range f.cachedCertSummary {
 		// quick check before request for details
-		if summary.Type != acmTypes.CertificateTypeImported {
-			continue
-		}
 		if !summary.NotBefore.Equal(certBundle.Cert.NotBefore) || !summary.NotAfter.Equal(certBundle.Cert.NotAfter) {
 			continue
 		}
@@ -90,7 +105,7 @@ func (f *cachedAcmCertFinder) FindCertInACM(ctx context.Context, certBundle *cer
 		}
 
 		// need serial number for final check
-		if certDetails, err := f.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+		if certDetails, err := f.api.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 			CertificateArn: summary.CertificateArn,
 		}); err != nil {
 			return "", err
@@ -110,7 +125,7 @@ func (f *cachedAcmCertFinder) listCertificates(ctx context.Context) ([]acmTypes.
 
 	var nextToken *string = nil
 	for {
-		result, err := f.client.ListCertificates(ctx, &acm.ListCertificatesInput{
+		result, err := f.api.ListCertificates(ctx, &acm.ListCertificatesInput{
 			NextToken:           nextToken,
 			CertificateStatuses: []acmTypes.CertificateStatus{acmTypes.CertificateStatusIssued},
 			Includes: &acmTypes.Filters{
@@ -138,11 +153,11 @@ func (f *cachedAcmCertFinder) listCertificates(ctx context.Context) ([]acmTypes.
 //   - Unused.
 //   - A imported cert. i.e. not issued by amazon.
 //   - Managed by the cert-deployer (has acmManagedTagKey tag).
-func (d *deployer) deleteManagedCertFromAcmIfUnused(ctx context.Context, acmClient *acm.Client, certArn *string) (deleted bool, err error) {
+func (d *deployer) deleteManagedCertFromAcmIfUnused(ctx context.Context, acmApi acmApi, certArn *string) (deleted bool, err error) {
 	if certArn == nil {
 		return false, nil
 	}
-	if result, err := acmClient.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+	if result, err := acmApi.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 		CertificateArn: certArn,
 	}); err != nil {
 		return false, err
@@ -153,7 +168,7 @@ func (d *deployer) deleteManagedCertFromAcmIfUnused(ctx context.Context, acmClie
 	}
 
 	// verify the cert is managed by this program
-	if result, err := acmClient.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{
+	if result, err := acmApi.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{
 		CertificateArn: certArn,
 	}); err != nil {
 		return false, err
@@ -172,7 +187,7 @@ func (d *deployer) deleteManagedCertFromAcmIfUnused(ctx context.Context, acmClie
 	}
 
 	// delete
-	_, err = acmClient.DeleteCertificate(ctx, &acm.DeleteCertificateInput{
+	_, err = acmApi.DeleteCertificate(ctx, &acm.DeleteCertificateInput{
 		CertificateArn: certArn,
 	})
 	return err == nil, err

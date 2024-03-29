@@ -13,8 +13,18 @@ import (
 	"strings"
 )
 
+// cloudfrontApi abstracts the functions used in cloudfront.Client for testing purposes.
+//
+// All functions in this interface must be the same as in cloudfront.Client to make sure
+// cloudfront.Client is a valid implementation.
+type cloudfrontApi interface {
+	GetDistributionConfig(ctx context.Context, params *cloudfront.GetDistributionConfigInput, optFns ...func(*cloudfront.Options)) (*cloudfront.GetDistributionConfigOutput, error)
+
+	UpdateDistribution(ctx context.Context, params *cloudfront.UpdateDistributionInput, optFns ...func(*cloudfront.Options)) (*cloudfront.UpdateDistributionOutput, error)
+}
+
 // listCloudFrontAssets lists all cloud front distributions that match the given certificate.
-// Hostname checking is ignored if the fullChain is nil.
+// Hostname checking is ignored if the certBundle is nil.
 //
 // Distributions without aliases always match no certificates.
 func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle *certificateBundle) ([]domain.Asseter, error) {
@@ -79,10 +89,9 @@ func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle *certifi
 // imported again, even if the certificate is not managed by cert-deployer.
 //
 // The previous cert will be deleted from ACM if it is unused anymore and managed by cert-deployer.
-func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertFinder, asset *cloudFrontDistribution, cert *certificateBundle, key []byte) error {
+func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi, certFinder acmCertFinder, asset *cloudFrontDistribution, cert *certificateBundle, key []byte) error {
 	// get current cloud front config
-	cfClient := cloudfront.NewFromConfig(d.cfg)
-	result, err := cfClient.GetDistributionConfig(ctx, &cloudfront.GetDistributionConfigInput{
+	result, err := cfApi.GetDistributionConfig(ctx, &cloudfront.GetDistributionConfigInput{
 		Id: &asset.Id,
 	})
 	if err != nil {
@@ -91,7 +100,7 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertF
 	// verify domain name matching
 	// WARN: AWS does not verify the matching of certificate!
 	// Deploying the wrong certificate can cause client access to fail.
-	if result.DistributionConfig.Aliases == nil {
+	if result.DistributionConfig.Aliases == nil || *result.DistributionConfig.Aliases.Quantity == 0 {
 		return errors.New("cert not match")
 	} else {
 		for _, item := range result.DistributionConfig.Aliases.Items {
@@ -102,7 +111,6 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertF
 	}
 
 	// try to find cert in ACM
-	acmClient := certFinder.GetAcmClient()
 	var certARN *string
 	var newImportedCert = false // whether the cert deployed this time is the new one
 	if arn, err := certFinder.FindCertInACM(ctx, cert); err != nil {
@@ -113,6 +121,7 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertF
 
 	if certARN == nil {
 		// cert does not exist in ACM, import it
+		acmClient := certFinder.GetAcmApi()
 		tagKey := aws.String(acmManagedTagKey)
 		tagValue := aws.String(acmManagedTagValue)
 		if result, err := acmClient.ImportCertificate(ctx, &acm.ImportCertificateInput{
@@ -150,7 +159,7 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertF
 	newCertConfig.CloudFrontDefaultCertificate = aws.Bool(false)
 
 	// submit
-	if _, err := cfClient.UpdateDistribution(ctx, &cloudfront.UpdateDistributionInput{
+	if _, err := cfApi.UpdateDistribution(ctx, &cloudfront.UpdateDistributionInput{
 		DistributionConfig: result.DistributionConfig,
 		Id:                 &asset.Id,
 		IfMatch:            result.ETag,
@@ -160,6 +169,7 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, certFinder acmCertF
 
 	// delete old cert from ACM
 	if newImportedCert && oldCertArn != nil {
+		acmClient := certFinder.GetAcmApi()
 		if deleted, err := d.deleteManagedCertFromAcmIfUnused(ctx, acmClient, oldCertArn); err != nil {
 			d.logger.Warnf("failed to delete unused cert '%s' from ACM: %v", *oldCertArn, err)
 		} else if deleted {

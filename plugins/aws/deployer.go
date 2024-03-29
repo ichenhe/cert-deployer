@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/registry"
 	"go.uber.org/zap"
@@ -77,6 +78,7 @@ func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (dep
 
 	acmClient := acm.NewFromConfig(d.cfg)
 	acmCertFinder := newCachedAcmCertFinder(acmClient)
+	cloudfrontClient := cloudfront.NewFromConfig(d.cfg)
 
 	for _, asset := range assets {
 		info := asset.GetBaseInfo()
@@ -94,7 +96,7 @@ func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (dep
 			if cfAsset, ok := asset.(*cloudFrontDistribution); !ok {
 				deployErrs = append(deployErrs, domain.NewDeployError(asset,
 					errors.New("can not convert asset to CloudFrontDistribution")))
-			} else if err := d.deployCloudFrontCert(context.TODO(), acmCertFinder, cfAsset, certBundle, key); err != nil {
+			} else if err := d.deployCloudFrontCert(context.TODO(), cloudfrontClient, acmCertFinder, cfAsset, certBundle, key); err != nil {
 				deployErrs = append(deployErrs, domain.NewDeployError(asset, err))
 			} else {
 				deployedAssets = append(deployedAssets, asset)

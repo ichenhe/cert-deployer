@@ -110,3 +110,10 @@ func Test_certificateBundle_VerifyHostnames(t *testing.T) {
 		})
 	}
 }
+
+func Test_certificateBundle_GetSerialNumberHexString(t *testing.T) {
+	want := "9f7aa7f3f62a992d9364d7f5f47b52b1"
+	b, err := newCertificateBundle(testCert)
+	assert.NoError(t, err)
+	assert.Equalf(t, want, b.GetSerialNumberHexString(), "GetSerialNumberHexString()")
+}

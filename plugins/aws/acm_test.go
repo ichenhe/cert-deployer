@@ -3,7 +3,6 @@ package aws
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
@@ -12,14 +11,15 @@ import (
 	"testing"
 )
 
-func Test_cachedAcmCertFinder_FindCertInACM(t *testing.T) {
+func Test_cachedAcmManager_FindCertInACM(t *testing.T) {
 	targetCertBundle, _ := newCertificateBundle(testCert)
 	tests := []struct {
-		name       string
-		queryTimes int
-		api        func(t *testing.T) acmApi
-		wantArn    string
-		wantErr    bool
+		name          string
+		queryTimes    int
+		api           func(t *testing.T) acmApi
+		wantFromCache []bool
+		wantArn       string
+		wantErr       bool
 	}{
 		{
 			name:       "found the cert from ACM",
@@ -41,14 +41,15 @@ func Test_cachedAcmCertFinder_FindCertInACM(t *testing.T) {
 					return &acm.DescribeCertificateOutput{
 						Certificate: &acmTypes.CertificateDetail{
 							CertificateArn: input.CertificateArn,
-							Serial:         aws.String(fmt.Sprintf("%x", targetCertBundle.Cert.SerialNumber)),
+							Serial:         aws.String(targetCertBundle.GetSerialNumberHexString()),
 						},
 					}, nil
 				}).Once()
 				return api
 			},
-			wantArn: "arn1",
-			wantErr: false,
+			wantFromCache: []bool{false},
+			wantArn:       "arn1",
+			wantErr:       false,
 		},
 		{
 			name:       "found the cert from cache",
@@ -70,14 +71,15 @@ func Test_cachedAcmCertFinder_FindCertInACM(t *testing.T) {
 					return &acm.DescribeCertificateOutput{
 						Certificate: &acmTypes.CertificateDetail{
 							CertificateArn: input.CertificateArn,
-							Serial:         aws.String(fmt.Sprintf("%x", targetCertBundle.Cert.SerialNumber)),
+							Serial:         aws.String(targetCertBundle.GetSerialNumberHexString()),
 						},
 					}, nil
 				}).Once()
 				return api
 			},
-			wantArn: "arn1",
-			wantErr: false,
+			wantFromCache: []bool{false, true},
+			wantArn:       "arn1",
+			wantErr:       false,
 		},
 		{
 			name:       "not found",
@@ -88,20 +90,22 @@ func Test_cachedAcmCertFinder_FindCertInACM(t *testing.T) {
 				api.EXPECT().ListCertificates(mock.Anything, mock.Anything, mock.Anything).Return(output, nil).Once()
 				return api
 			},
-			wantArn: "",
-			wantErr: false,
+			wantFromCache: []bool{false},
+			wantArn:       "",
+			wantErr:       false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			finder := newCachedAcmCertFinder(tt.api(t))
 
-			for range tt.queryTimes {
-				gotArn, err := finder.FindCertInACM(context.Background(), targetCertBundle)
+			for i := range tt.queryTimes {
+				gotArn, fromCachefalse, err := finder.FindCertInACM(context.Background(), targetCertBundle)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("FindCertInACM() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
+				assert.Equal(t, tt.wantFromCache[i], fromCachefalse)
 				if gotArn != tt.wantArn {
 					t.Errorf("FindCertInACM() gotArn = %v, want %v", gotArn, tt.wantArn)
 				}

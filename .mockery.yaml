@@ -27,5 +27,5 @@ packages:
   github.com/ichenhe/cert-deployer/plugins/aws:
     interfaces:
       acmApi: { }
-      acmCertFinder: { }
+      acmManager: { }
       cloudfrontApi: { }

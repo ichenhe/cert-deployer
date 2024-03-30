@@ -3,7 +3,6 @@ package aws
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/ichenhe/cert-deployer/domain"
@@ -17,7 +16,7 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 
 	type args struct {
 		cfApi      func(t *testing.T) cloudfrontApi
-		certFinder func(t *testing.T) acmCertFinder
+		certFinder func(t *testing.T) acmManager
 	}
 
 	// fixed args
@@ -49,8 +48,8 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 					f.EXPECT().GetDistributionConfig(mock.Anything, mock.Anything).Return(createGetDistributionConfigOutput(), nil)
 					return f
 				},
-				certFinder: func(t *testing.T) acmCertFinder {
-					return NewMockacmCertFinder(t)
+				certFinder: func(t *testing.T) acmManager {
+					return NewMockacmManager(t)
 				},
 			},
 			wantErr: true,
@@ -64,8 +63,8 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 						Return(createGetDistributionConfigOutput("www.chenhe.me", "not-in-the-cert.xyz"), nil)
 					return f
 				},
-				certFinder: func(t *testing.T) acmCertFinder {
-					return NewMockacmCertFinder(t)
+				certFinder: func(t *testing.T) acmManager {
+					return NewMockacmManager(t)
 				},
 			},
 			wantErr: true,
@@ -80,9 +79,9 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 					f.EXPECT().UpdateDistribution(mock.Anything, mock.Anything).Return(nil, nil)
 					return f
 				},
-				certFinder: func(t *testing.T) acmCertFinder {
-					f := NewMockacmCertFinder(t)
-					f.EXPECT().FindCertInACM(mock.Anything, mock.Anything).Return("arn", nil)
+				certFinder: func(t *testing.T) acmManager {
+					f := NewMockacmManager(t)
+					f.EXPECT().FindCertInACM(mock.Anything, mock.Anything).Return("arn", false, nil)
 					return f
 				},
 			},
@@ -101,20 +100,11 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 					})
 					return f
 				},
-				certFinder: func(t *testing.T) acmCertFinder {
-					f := NewMockacmCertFinder(t)
-					acmApi := NewMockacmApi(t)
-					acmApi.EXPECT().ImportCertificate(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, input *acm.ImportCertificateInput, f ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
-						assert.Len(t, input.Tags, 1)
-						assert.Equal(t, acmManagedTagKey, *input.Tags[0].Key)
-						return &acm.ImportCertificateOutput{
-							CertificateArn: aws.String("new-arn"),
-						}, nil
-					})
-					f.EXPECT().NotifyCertAdded(certBundle, "new-arn").Once()
-					f.EXPECT().GetAcmApi().Return(acmApi)
-					f.EXPECT().FindCertInACM(mock.Anything, mock.Anything).Return("", nil)
-					return f
+				certFinder: func(t *testing.T) acmManager {
+					m := NewMockacmManager(t)
+					m.EXPECT().ImportCertificate(mock.Anything, mock.Anything, mock.Anything).Return("new-arn", nil)
+					m.EXPECT().FindCertInACM(mock.Anything, mock.Anything).Return("", false, nil)
+					return m
 				},
 			},
 			wantErr: false,

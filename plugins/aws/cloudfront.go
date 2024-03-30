@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/acm"
-	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/ichenhe/cert-deployer/domain"
@@ -89,7 +87,7 @@ func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle *certifi
 // imported again, even if the certificate is not managed by cert-deployer.
 //
 // The previous cert will be deleted from ACM if it is unused anymore and managed by cert-deployer.
-func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi, certFinder acmCertFinder, asset *cloudFrontDistribution, cert *certificateBundle, key []byte) error {
+func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi, acmManager acmManager, asset *cloudFrontDistribution, cert *certificateBundle, key []byte) error {
 	// get current cloud front config
 	result, err := cfApi.GetDistributionConfig(ctx, &cloudfront.GetDistributionConfigInput{
 		Id: &asset.Id,
@@ -111,35 +109,26 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi
 	}
 
 	// try to find cert in ACM
-	var certARN *string
-	var newImportedCert = false // whether the cert deployed this time is the new one
-	if arn, err := certFinder.FindCertInACM(ctx, cert); err != nil {
+	var (
+		certARN         string
+		fromCache       = false
+		newImportedCert = false // whether the cert deployed this time is the new one
+	)
+	if certARN, fromCache, err = acmManager.FindCertInACM(ctx, cert); err != nil {
 		return fmt.Errorf("failed to find cert from ACM: %w", err)
-	} else if arn != "" {
-		certARN = &arn
 	}
 
-	if certARN == nil {
+	if certARN == "" {
 		// cert does not exist in ACM, import it
-		acmClient := certFinder.GetAcmApi()
-		tagKey := aws.String(acmManagedTagKey)
-		tagValue := aws.String(acmManagedTagValue)
-		if result, err := acmClient.ImportCertificate(ctx, &acm.ImportCertificateInput{
-			Certificate:      cert.ClientCertRaw(),
-			PrivateKey:       key,
-			CertificateChain: cert.ChainRaw,
-			Tags:             []acmTypes.Tag{{Key: tagKey, Value: tagValue}},
-		}); err != nil {
+		if certARN, err = acmManager.ImportCertificate(ctx, cert, key); err != nil {
 			return fmt.Errorf("failed to import cert to ACM: %w", err)
 		} else {
 			newImportedCert = true
-			certARN = result.CertificateArn
-			certFinder.NotifyCertAdded(cert, *result.CertificateArn)
 		}
 	}
 
-	if certARN == nil {
-		return fmt.Errorf("unknown error: cert ARN should not be nil")
+	if certARN == "" {
+		return fmt.Errorf("unknown error: cert's ARN should not be empty")
 	}
 
 	// create new cert config
@@ -155,7 +144,7 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi
 		newCertConfig.MinimumProtocolVersion = types.MinimumProtocolVersionTLSv1
 		newCertConfig.SSLSupportMethod = types.SSLSupportMethodSniOnly
 	}
-	newCertConfig.ACMCertificateArn = certARN
+	newCertConfig.ACMCertificateArn = aws.String(certARN)
 	newCertConfig.CloudFrontDefaultCertificate = aws.Bool(false)
 
 	// submit
@@ -164,16 +153,24 @@ func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi
 		Id:                 &asset.Id,
 		IfMatch:            result.ETag,
 	}); err != nil {
+		var invalidViewerCertificate *types.InvalidViewerCertificate
+		if errors.As(err, &invalidViewerCertificate) {
+			// current cert is invalid, maybe the cert has been changed or deleted
+			// let's invalidate the cert and try again
+			if fromCache {
+				acmManager.RemoveCertFromCache(certARN)
+				// since we invalid the cache, it's unlikely to arise infinite recursion
+				return d.deployCloudFrontCert(ctx, cfApi, acmManager, asset, cert, key)
+			}
+		}
 		return fmt.Errorf("failed to update distribution: %w", err)
 	}
 
 	// delete old cert from ACM
 	if newImportedCert && oldCertArn != nil {
-		acmClient := certFinder.GetAcmApi()
-		if deleted, err := d.deleteManagedCertFromAcmIfUnused(ctx, acmClient, oldCertArn); err != nil {
+		if deleted, err := acmManager.DeleteManagedCertFromAcmIfUnused(ctx, oldCertArn); err != nil {
 			d.logger.Warnf("failed to delete unused cert '%s' from ACM: %v", *oldCertArn, err)
 		} else if deleted {
-			certFinder.NotifyCertDeleted(*oldCertArn)
 			d.logger.Debugf("deleted unused cert '%s' from ACM", *oldCertArn)
 		}
 	}

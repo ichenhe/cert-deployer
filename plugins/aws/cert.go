@@ -94,3 +94,10 @@ func (b *certificateBundle) VerifyHostnames(hostnames []string) bool {
 	}
 	return true
 }
+
+// GetSerialNumberHexString returns the serial number of the cert in hex string without colons or
+// leading zeros.
+// e.g. 9f7aa7f3f62a
+func (b *certificateBundle) GetSerialNumberHexString() string {
+	return fmt.Sprintf("%x", b.Cert.SerialNumber)
+}

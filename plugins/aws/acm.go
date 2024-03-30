@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
 )
@@ -25,102 +26,190 @@ type acmApi interface {
 	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 }
 
-type acmCertFinder interface {
-	GetAcmApi() acmApi
+// acmManager wraps the acm.Client to manage certificates in ACM (AWS Certificate Manager).
+type acmManager interface {
+	// FindCertInACM finds given cert from ACM (AWS Certificate Manager).
+	// Returns certification's ARN (Amazon Resource Name) and the source (whether from cache) if
+	// found, otherwise "".
+	// Returning "",false,nil means no errors but not found.
+	FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, fromCache bool, err error)
 
-	// FindCertInACM finds cert saved in the bundle from ACM (AWS Certificate Manager).
-	// Returns ARN (Amazon Resource Name) of the cert if found, otherwise "".
-	// Returning "",nil means no errors but not found.
-	FindCertInACM(ctx context.Context, certBundle *certificateBundle) (string, error)
+	// DeleteManagedCertFromAcmIfUnused deletes a cert from ACM.
+	//
+	// The deleted certificate must meet ALL conditions:
+	//   - Unused.
+	//   - A imported cert. i.e. not issued by amazon.
+	//   - Managed by the cert-deployer (has acmManagedTagKey tag).
+	DeleteManagedCertFromAcmIfUnused(ctx context.Context, certArn *string) (deleted bool, err error)
 
-	// NotifyCertAdded notifies the finder that a cert has been imported to ACM. Useful for caching.
-	NotifyCertAdded(certBundle *certificateBundle, arn string)
+	ImportCertificate(ctx context.Context, certBundle *certificateBundle, key []byte) (arn string, err error)
 
-	// NotifyCertDeleted notifies the finder that a cert has been deleted from ACM. Useful for caching.
-	NotifyCertDeleted(arn string)
+	RemoveCertFromCache(arn string)
 }
 
-var _ acmCertFinder = &cachedAcmCertFinder{}
+var _ acmManager = &cachedAcmManager{}
 
-func newCachedAcmCertFinder(acmApi acmApi) *cachedAcmCertFinder {
-	return &cachedAcmCertFinder{
+func newCachedAcmCertFinder(acmApi acmApi) *cachedAcmManager {
+	return &cachedAcmManager{
 		api: acmApi,
 
 		cachedCertSummary: make(map[string]acmTypes.CertificateSummary),
-		cachedCerts:       make(map[string]string),
+		cachedSnToArn:     make(map[string]string),
 	}
 }
 
+// cachedAcmManager caches the certificate list to speed up the query.
 // Usage point:
 //
 //   - Cannot be used in parallel.
 //   - Must be notified immediately after adding/removing a certificate.
 //   - Recommended for continuous deployment only - do not cache for a long time.
-type cachedAcmCertFinder struct {
+type cachedAcmManager struct {
 	api acmApi
 
 	// runtime
 	cachedCertSummary map[string]acmTypes.CertificateSummary // arn -> summary
-	cachedCerts       map[string]string                      // cert serial number (hex string without colons or prefix) -> ARN
+	cachedSnToArn     map[string]string                      // cert serial number (hex string without colons or prefix) -> ARN
+	cachedArnToSn     map[string]string
 }
 
-func (f *cachedAcmCertFinder) NotifyCertAdded(certBundle *certificateBundle, arn string) {
-	f.cachedCerts[fmt.Sprintf("%x", certBundle.Cert.SerialNumber)] = arn
+func (f *cachedAcmManager) ImportCertificate(ctx context.Context, certBundle *certificateBundle, key []byte) (arn string, err error) {
+	if result, err := f.api.ImportCertificate(ctx, &acm.ImportCertificateInput{
+		Certificate:      certBundle.ClientCertRaw(),
+		PrivateKey:       key,
+		CertificateChain: certBundle.ChainRaw,
+		Tags:             []acmTypes.Tag{{Key: aws.String(acmManagedTagKey), Value: aws.String(acmManagedTagValue)}},
+	}); err != nil {
+		return "", err
+	} else {
+		// update cache
+		f.cachedArnToSn[*result.CertificateArn] = certBundle.GetSerialNumberHexString()
+		f.cachedSnToArn[certBundle.GetSerialNumberHexString()] = *result.CertificateArn
+
+		return *result.CertificateArn, nil
+	}
 }
 
-func (f *cachedAcmCertFinder) NotifyCertDeleted(arn string) {
+func (f *cachedAcmManager) RemoveCertFromCache(arn string) {
 	delete(f.cachedCertSummary, arn)
-	delete(f.cachedCerts, arn)
+	if sn, ex := f.cachedArnToSn[arn]; ex {
+		delete(f.cachedSnToArn, sn)
+		delete(f.cachedArnToSn, arn)
+	}
 }
 
-func (f *cachedAcmCertFinder) GetAcmApi() acmApi {
-	return f.api
-}
-
-func (f *cachedAcmCertFinder) FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, err error) {
-	// check cached result first
-	if arn, ex := f.cachedCerts[fmt.Sprintf("%x", certBundle.Cert.SerialNumber)]; ex {
-		return arn, nil
+func (f *cachedAcmManager) DeleteManagedCertFromAcmIfUnused(ctx context.Context, certArn *string) (deleted bool, err error) {
+	if certArn == nil {
+		return false, fmt.Errorf("certArn is nil")
+	}
+	if result, err := f.api.DescribeCertificate(ctx, &acm.DescribeCertificateInput{CertificateArn: certArn}); err != nil {
+		return false, fmt.Errorf("failed to describe cert: %w", err)
+	} else if len(result.Certificate.InUseBy) > 0 {
+		return false, nil // still using
+	} else if result.Certificate.Type != acmTypes.CertificateTypeImported {
+		return false, nil // not imported by the user
 	}
 
-	// fetch cert list if needed
-	if len(f.cachedCertSummary) == 0 {
-		if certs, err := f.listCertificates(ctx); err != nil {
-			return "", err
-		} else {
-			for _, cert := range certs {
-				f.cachedCertSummary[*cert.CertificateArn] = cert
+	// verify the cert is managed by this program
+	if result, err := f.api.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{CertificateArn: certArn}); err != nil {
+		return false, fmt.Errorf("failed to list tags: %w", err)
+	} else {
+		find := false
+		for _, tag := range result.Tags {
+			if *tag.Key == acmManagedTagKey {
+				find = true
+				break
 			}
 		}
+		if !find {
+			// not managed by the tool
+			return false, nil
+		}
 	}
 
-	// find in candidates
-	for _, summary := range f.cachedCertSummary {
+	// delete
+	_, err = f.api.DeleteCertificate(ctx, &acm.DeleteCertificateInput{CertificateArn: certArn})
+	deleted = err == nil
+	if deleted {
+		// delete from cache
+		delete(f.cachedCertSummary, *certArn)
+		if sn, ex := f.cachedArnToSn[*certArn]; ex {
+			delete(f.cachedSnToArn, sn)
+			delete(f.cachedArnToSn, *certArn)
+		}
+	}
+	return
+}
+
+func (f *cachedAcmManager) FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, fromCache bool, err error) {
+	// check cached result first
+	if arn, ex := f.cachedSnToArn[certBundle.GetSerialNumberHexString()]; ex {
+		return arn, true, nil
+	}
+
+	verifyIsTheSameCert := func(summary *acmTypes.CertificateSummary) (bool, error) {
 		// quick check before request for details
 		if !summary.NotBefore.Equal(certBundle.Cert.NotBefore) || !summary.NotAfter.Equal(certBundle.Cert.NotAfter) {
-			continue
+			return false, nil
 		}
 		if !certBundle.ContainsAllDomains(summary.SubjectAlternativeNameSummaries) {
-			continue
+			return false, nil
 		}
 
 		// need serial number for final check
 		if certDetails, err := f.api.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 			CertificateArn: summary.CertificateArn,
 		}); err != nil {
-			return "", err
+			return false, err
 		} else if certDetails.Certificate.Serial != nil && certBundle.VerifySerialNumber(*certDetails.Certificate.Serial) {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	// find from cached list
+	for currentArn, summary := range f.cachedCertSummary {
+		if ok, err := verifyIsTheSameCert(&summary); err == nil && ok {
 			// update cache
-			f.cachedCerts[fmt.Sprintf("%x", certBundle.Cert.SerialNumber)] = *summary.CertificateArn
-			return *summary.CertificateArn, nil
+			f.cachedSnToArn[certBundle.GetSerialNumberHexString()] = currentArn
+
+			// it is updated because it has just been verified via DescribeCertificate()
+			return currentArn, false, nil
+		} else if err != nil {
+			// failed to fetch certification details from ACM, the cert could have been deleted
+			// remove it from cache
+			delete(f.cachedCertSummary, currentArn)
+			if sn, ex := f.cachedArnToSn[currentArn]; ex {
+				delete(f.cachedSnToArn, sn)
+				delete(f.cachedArnToSn, currentArn)
+			}
 		}
 	}
 
-	return "", err
+	// not found in cache
+	certs, err := f.listCertificates(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	// update cached cert list
+	f.cachedCertSummary = make(map[string]acmTypes.CertificateSummary, len(certs))
+	for _, cert := range certs {
+		f.cachedCertSummary[*cert.CertificateArn] = cert
+	}
+	// find target
+	for _, cert := range certs {
+		if ok, err := verifyIsTheSameCert(&cert); err == nil && ok {
+			// update cache
+			f.cachedSnToArn[certBundle.GetSerialNumberHexString()] = *cert.CertificateArn
+			return *cert.CertificateArn, false, nil
+		}
+	}
+
+	return "", false, err
 }
 
 // listCertificates lists all certificates with 'issued' status, includes amazon issued.
-func (f *cachedAcmCertFinder) listCertificates(ctx context.Context) ([]acmTypes.CertificateSummary, error) {
+func (f *cachedAcmManager) listCertificates(ctx context.Context) ([]acmTypes.CertificateSummary, error) {
 	certs := make([]acmTypes.CertificateSummary, 0)
 
 	var nextToken *string = nil
@@ -145,50 +234,4 @@ func (f *cachedAcmCertFinder) listCertificates(ctx context.Context) ([]acmTypes.
 	}
 
 	return certs, nil
-}
-
-// deleteManagedCertFromAcmIfUnused deletes a cert from ACM.
-//
-// The deleted certificate must meet the ALL conditions:
-//   - Unused.
-//   - A imported cert. i.e. not issued by amazon.
-//   - Managed by the cert-deployer (has acmManagedTagKey tag).
-func (d *deployer) deleteManagedCertFromAcmIfUnused(ctx context.Context, acmApi acmApi, certArn *string) (deleted bool, err error) {
-	if certArn == nil {
-		return false, nil
-	}
-	if result, err := acmApi.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
-		CertificateArn: certArn,
-	}); err != nil {
-		return false, err
-	} else if len(result.Certificate.InUseBy) > 0 {
-		return false, nil // still using
-	} else if result.Certificate.Type != acmTypes.CertificateTypeImported {
-		return false, nil // not imported by the user
-	}
-
-	// verify the cert is managed by this program
-	if result, err := acmApi.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{
-		CertificateArn: certArn,
-	}); err != nil {
-		return false, err
-	} else {
-		find := false
-		for _, tag := range result.Tags {
-			if *tag.Key == acmManagedTagKey {
-				find = true
-				break
-			}
-		}
-		if !find {
-			// not managed by the tool
-			return false, nil
-		}
-	}
-
-	// delete
-	_, err = acmApi.DeleteCertificate(ctx, &acm.DeleteCertificateInput{
-		CertificateArn: certArn,
-	})
-	return err == nil, err
 }

@@ -76,7 +76,7 @@ func (c *cachedDeployerCommander) addToCache(assetType string, assets []domain.A
 // This function does not use the cache but updates the cache with assets it acquired.
 func (c *cachedDeployerCommander) DeployToAssetType(ctx context.Context, assetType string, cert, key []byte,
 	onAssetsAcquired func(assets []domain.Asseter),
-	onDeployResult func(asset domain.Asseter, err error)) error {
+	onDeployResult domain.DeployResultCallbackFunc) error {
 
 	assets, err := c.deployer.ListApplicableAssets(ctx, assetType, cert)
 	if err != nil {
@@ -89,17 +89,9 @@ func (c *cachedDeployerCommander) DeployToAssetType(ctx context.Context, assetTy
 	if onAssetsAcquired != nil {
 		onAssetsAcquired(assets)
 	}
-	for _, asset := range assets {
-		_, errors := c.deployer.Deploy(ctx, []domain.Asseter{asset}, cert, key)
-		var err error
-		if errors != nil && len(errors) > 0 {
-			err = errors[0]
-		}
-		if onDeployResult != nil {
-			onDeployResult(asset, err)
-		}
-	}
-	return nil
+	return c.deployer.Deploy(ctx, assets, cert, key, &domain.DeployCallback{
+		ResultCallback: onDeployResult,
+	})
 }
 
 func (c *cachedDeployerCommander) retrieveAsset(ctx context.Context, assetType string, assetId string) (domain.Asseter, error) {
@@ -120,15 +112,19 @@ func (c *cachedDeployerCommander) retrieveAsset(ctx context.Context, assetType s
 }
 
 // DeployToAsset deploys the cert to asset with given id.
-func (c *cachedDeployerCommander) DeployToAsset(ctx context.Context, assetType string, assetId string, cert []byte, key []byte) error {
+func (c *cachedDeployerCommander) DeployToAsset(ctx context.Context, assetType string, assetId string, cert []byte, key []byte) (err error) {
+	// TODO: prefer batch deployment
 	asset, err := c.retrieveAsset(ctx, assetType, assetId)
 	if err != nil {
 		return err
 	}
 
-	_, errors := c.deployer.Deploy(ctx, []domain.Asseter{asset}, cert, key)
-	if errors != nil && len(errors) > 0 {
-		return errors[0]
+	if err := c.deployer.Deploy(ctx, []domain.Asseter{asset}, cert, key, &domain.DeployCallback{
+		ResultCallback: func(asset domain.Asseter, e error) {
+			err = e
+		},
+	}); err != nil {
+		return err
 	}
-	return nil
+	return
 }

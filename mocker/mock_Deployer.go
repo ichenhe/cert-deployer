@@ -22,36 +22,22 @@ func (_m *MockDeployer) EXPECT() *MockDeployer_Expecter {
 	return &MockDeployer_Expecter{mock: &_m.Mock}
 }
 
-// Deploy provides a mock function with given fields: ctx, assets, cert, key
-func (_m *MockDeployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) ([]domain.Asseter, []*domain.DeployError) {
-	ret := _m.Called(ctx, assets, cert, key)
+// Deploy provides a mock function with given fields: ctx, assets, cert, key, callback
+func (_m *MockDeployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte, callback *domain.DeployCallback) error {
+	ret := _m.Called(ctx, assets, cert, key, callback)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Deploy")
 	}
 
-	var r0 []domain.Asseter
-	var r1 []*domain.DeployError
-	if rf, ok := ret.Get(0).(func(context.Context, []domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)); ok {
-		return rf(ctx, assets, cert, key)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, []domain.Asseter, []byte, []byte) []domain.Asseter); ok {
-		r0 = rf(ctx, assets, cert, key)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []domain.Asseter, []byte, []byte, *domain.DeployCallback) error); ok {
+		r0 = rf(ctx, assets, cert, key, callback)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]domain.Asseter)
-		}
+		r0 = ret.Error(0)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, []domain.Asseter, []byte, []byte) []*domain.DeployError); ok {
-		r1 = rf(ctx, assets, cert, key)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]*domain.DeployError)
-		}
-	}
-
-	return r0, r1
+	return r0
 }
 
 // MockDeployer_Deploy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Deploy'
@@ -64,23 +50,24 @@ type MockDeployer_Deploy_Call struct {
 //   - assets []domain.Asseter
 //   - cert []byte
 //   - key []byte
-func (_e *MockDeployer_Expecter) Deploy(ctx interface{}, assets interface{}, cert interface{}, key interface{}) *MockDeployer_Deploy_Call {
-	return &MockDeployer_Deploy_Call{Call: _e.mock.On("Deploy", ctx, assets, cert, key)}
+//   - callback *domain.DeployCallback
+func (_e *MockDeployer_Expecter) Deploy(ctx interface{}, assets interface{}, cert interface{}, key interface{}, callback interface{}) *MockDeployer_Deploy_Call {
+	return &MockDeployer_Deploy_Call{Call: _e.mock.On("Deploy", ctx, assets, cert, key, callback)}
 }
 
-func (_c *MockDeployer_Deploy_Call) Run(run func(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte)) *MockDeployer_Deploy_Call {
+func (_c *MockDeployer_Deploy_Call) Run(run func(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte, callback *domain.DeployCallback)) *MockDeployer_Deploy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].([]domain.Asseter), args[2].([]byte), args[3].([]byte))
+		run(args[0].(context.Context), args[1].([]domain.Asseter), args[2].([]byte), args[3].([]byte), args[4].(*domain.DeployCallback))
 	})
 	return _c
 }
 
-func (_c *MockDeployer_Deploy_Call) Return(deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) *MockDeployer_Deploy_Call {
-	_c.Call.Return(deployedAssets, deployErrs)
+func (_c *MockDeployer_Deploy_Call) Return(_a0 error) *MockDeployer_Deploy_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func(context.Context, []domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)) *MockDeployer_Deploy_Call {
+func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func(context.Context, []domain.Asseter, []byte, []byte, *domain.DeployCallback) error) *MockDeployer_Deploy_Call {
 	_c.Call.Return(run)
 	return _c
 }

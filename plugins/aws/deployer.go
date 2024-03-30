@@ -70,10 +70,16 @@ func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, c
 	return nil, nil
 }
 
-func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
+func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte, callback *domain.DeployCallback) error {
 	certBundle, err := newCertificateBundle(cert)
 	if err != nil {
-		return nil, []*domain.DeployError{{Err: err}}
+		return err
+	}
+
+	onDeployResult := func(asset domain.Asseter, err error) {
+		if callback != nil && callback.ResultCallback != nil {
+			callback.ResultCallback(asset, err)
+		}
 	}
 
 	acmClient := acm.NewFromConfig(d.cfg)
@@ -81,28 +87,36 @@ func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []b
 	cloudfrontClient := cloudfront.NewFromConfig(d.cfg)
 
 	for _, asset := range assets {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if callback != nil && callback.PreExecuteCallback != nil {
+			callback.PreExecuteCallback(asset)
+		}
+
 		info := asset.GetBaseInfo()
 		if info.Provider != Provider {
-			d.logger.Debugf("not a AWS asset, ignore: %v", asset)
+			onDeployResult(asset, errors.New("not a AWS asset"))
 			continue
 		}
 		if !info.Available {
-			d.logger.Debugf("asset not available, ignore: %v", assets)
+			onDeployResult(asset, errors.New("asset not available"))
 			continue
 		}
 
 		switch info.Type {
 		case CloudFront:
 			if cfAsset, ok := asset.(*cloudFrontDistribution); !ok {
-				deployErrs = append(deployErrs, domain.NewDeployError(asset,
-					errors.New("can not convert asset to CloudFrontDistribution")))
-			} else if err := d.deployCloudFrontCert(ctx, cloudfrontClient, acmCertFinder, cfAsset, certBundle, key); err != nil {
-				deployErrs = append(deployErrs, domain.NewDeployError(asset, err))
+				onDeployResult(asset, errors.New("can not convert asset to CloudFrontDistribution"))
 			} else {
-				deployedAssets = append(deployedAssets, asset)
+				err := d.deployCloudFrontCert(ctx, cloudfrontClient, acmCertFinder, cfAsset, certBundle, key)
+				onDeployResult(asset, err)
 			}
 		}
 	}
 
-	return deployedAssets, nil
+	return nil
 }

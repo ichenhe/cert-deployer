@@ -7,6 +7,15 @@ import (
 	"reflect"
 )
 
+type DeployResultCallbackFunc = func(asset Asseter, err error)
+
+type DeployPreExecuteCallbackFunc = func(asset Asseter)
+
+type DeployCallback struct {
+	ResultCallback     DeployResultCallbackFunc
+	PreExecuteCallback DeployPreExecuteCallbackFunc
+}
+
 type Deployer interface {
 	// IsAssetTypeSupported checks whether the given asset type is supported by the deployer.
 	//
@@ -23,10 +32,10 @@ type Deployer interface {
 
 	// Deploy the given pem cert to the all assets.
 	//
-	// Returns assets that were successfully deployed and errors. Please note that there is no
-	// guarantee that len(deployedAssets)+len(deployErrs)=len(assets), because some minor
-	// problems do not count as errors, such as provider mismatch.
-	Deploy(ctx context.Context, assets []Asseter, cert []byte, key []byte) (deployedAssets []Asseter, deployErrs []*DeployError)
+	// The result of each deployment is returned by the callback which can be nil if not interested.
+	//
+	// The return value itself indicates the general error rather than deployment result.
+	Deploy(ctx context.Context, assets []Asseter, cert []byte, key []byte, callback *DeployCallback) error
 }
 
 type DeployerFactory interface {
@@ -90,24 +99,6 @@ func RecoverFromInvalidOptionError(handler func(err *InvalidOptionError)) {
 		} else {
 			panic(v)
 		}
-	}
-}
-
-var _ error = &DeployError{}
-
-type DeployError struct {
-	Asset Asseter
-	Err   error
-}
-
-func (d *DeployError) Error() string {
-	return fmt.Sprintf("failed to deploy %v: %v", d.Asset, d.Err)
-}
-
-func NewDeployError(asset Asseter, err error) *DeployError {
-	return &DeployError{
-		Asset: asset,
-		Err:   err,
 	}
 }
 

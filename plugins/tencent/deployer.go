@@ -41,35 +41,44 @@ func (d *deployer) newCredential() *common.Credential {
 	return common.NewCredential(d.secretId, d.secretKey)
 }
 
-func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
+func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte, callback *domain.DeployCallback) error {
+	onDeployResult := func(asset domain.Asseter, err error) {
+		if callback != nil && callback.ResultCallback != nil {
+			callback.ResultCallback(asset, err)
+		}
+	}
+
 	for _, item := range assets {
-		// TODO: check ctx canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if callback != nil && callback.PreExecuteCallback != nil {
+			callback.PreExecuteCallback(item)
+		}
+
 		info := item.GetBaseInfo()
 		if info.Provider != Provider {
-			d.logger.Warnf("not a tencent asset, ignore: %v", item)
+			onDeployResult(item, errors.New("not a tencent asset"))
 			continue
 		}
 		if !info.Available {
-			d.logger.Warnf("asset not available, ignore: %v", item)
+			onDeployResult(item, errors.New("asset not available"))
 			continue
 		}
 
 		switch info.Type {
 		case CDN:
 			if cdnAsset, ok := item.(*CdnAsset); !ok {
-				deployErrs = append(deployErrs, domain.NewDeployError(item,
-					errors.New("can not convert asset to TencentCdnAsset")))
-			} else if err := d.deployCdnCert(cdnAsset, cert, key); err != nil {
-				deployErrs = append(deployErrs, domain.NewDeployError(item, err))
+				onDeployResult(item, errors.New("can not convert asset to TencentCdnAsset"))
 			} else {
-				deployedAssets = append(deployedAssets, item)
+				err := d.deployCdnCert(cdnAsset, cert, key)
+				onDeployResult(item, err)
 			}
 		}
 	}
-	if len(deployErrs) == 0 {
-		deployErrs = nil
-	}
-	return
+	return nil
 }
 
 func (d *deployer) deployCdnCert(asset *CdnAsset, cert []byte, key []byte) error {

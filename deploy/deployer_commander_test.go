@@ -13,7 +13,7 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 	type args struct {
 		assetId               []string
 		fetchedAssetsProvider func(ctx context.Context, ty string) ([]domain.Asseter, error) // mock the result of deployer.listAssets
-		deployResultProvider  func() []*domain.DeployError
+		deployError           error
 	}
 
 	tests := []struct {
@@ -30,9 +30,6 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 						&domain.Asset{Type: ty, Id: "id1", Available: true},
 					}, nil
 				},
-				deployResultProvider: func() []*domain.DeployError {
-					return nil
-				},
 			},
 			wantErr: []bool{false},
 		},
@@ -45,9 +42,6 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 						&domain.Asset{Type: ty, Id: "id1", Available: true},
 					}, nil
 				},
-				deployResultProvider: func() []*domain.DeployError {
-					return nil
-				},
 			},
 			wantErr: []bool{false, false, false},
 		},
@@ -58,7 +52,6 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 				fetchedAssetsProvider: func(ctx context.Context, ty string) ([]domain.Asseter, error) {
 					return nil, errors.New("failed to list asserts")
 				},
-				deployResultProvider: nil,
 			},
 			wantErr: []bool{true},
 		},
@@ -71,7 +64,6 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 						&domain.Asset{Type: ty, Id: "id1", Available: true},
 					}, nil
 				},
-				deployResultProvider: nil,
 			},
 			wantErr: []bool{true},
 		},
@@ -84,9 +76,7 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 						&domain.Asset{Type: ty, Id: "id1", Available: true},
 					}, nil
 				},
-				deployResultProvider: func() []*domain.DeployError {
-					return []*domain.DeployError{domain.NewDeployError(nil, errors.New("err"))}
-				},
+				deployError: errors.New("err"),
 			},
 			wantErr: []bool{true},
 		},
@@ -95,9 +85,10 @@ func Test_cachedDeployerCommander_DeployToAsset(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			deployer := mocker.NewMockDeployer(t)
 			deployer.EXPECT().ListAssets(mock.Anything, "test").RunAndReturn(tt.args.fetchedAssetsProvider).Once()
-			if tt.args.deployResultProvider != nil {
-				deployer.EXPECT().Deploy(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, tt.args.deployResultProvider())
-			}
+			deployer.EXPECT().Deploy(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, _ []domain.Asseter, _ []byte, _ []byte, callback *domain.DeployCallback) error {
+				callback.ResultCallback(nil, tt.args.deployError)
+				return nil
+			}).Maybe()
 
 			cmder := newCachedDeployerCommander(deployer)
 			for i, targetId := range tt.args.assetId {

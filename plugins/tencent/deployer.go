@@ -3,14 +3,26 @@ package tencent
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/registry"
-	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	"go.uber.org/zap"
 )
+
+const Provider = "TencentCloud"
+
+var supportedAssetTypes = map[string]struct{}{
+	CDN: {},
+}
+
+const (
+	CDN = "cdn"
+)
+
+func (d *deployer) IsAssetTypeSupported(assetType string) bool {
+	_, ok := supportedAssetTypes[assetType]
+	return ok
+}
 
 type deployer struct {
 	secretId  string
@@ -81,35 +93,18 @@ func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []b
 	return nil
 }
 
-func (d *deployer) deployCdnCert(asset *CdnAsset, cert []byte, key []byte) error {
-	client, err := cdn.NewClient(d.newCredential(), "", profile.NewClientProfile())
-	if err != nil {
-		return err
+func (d *deployer) ListAssets(ctx context.Context, assetType string) ([]domain.Asseter, error) {
+	switch assetType {
+	case CDN:
+		return d.listCDNAssets(ctx)
 	}
-	// query original config
-	queryReq := cdn.NewDescribeDomainsConfigRequest()
-	queryReq.Filters = []*cdn.DomainFilter{{
-		Name:  common.StringPtr("domain"),
-		Value: []*string{common.StringPtr(asset.Domain)},
-	}}
-	var queryResp *cdn.DescribeDomainsConfigResponse
-	queryResp, err = client.DescribeDomainsConfig(queryReq)
-	if err != nil {
-		return fmt.Errorf("failed to query domain config: %w", err)
-	} else if len(queryResp.Response.Domains) != 1 {
-		return fmt.Errorf("failed to query domain config: expect 1 result, actual is %d",
-			len(queryResp.Response.Domains))
+	return nil, nil
+}
+
+func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]domain.Asseter, error) {
+	switch assetType {
+	case CDN:
+		return d.listApplicableCDNAssets(ctx, cert)
 	}
-	// update https config
-	httpsConfig := queryResp.Response.Domains[0].Https
-	httpsConfig.CertInfo = &cdn.ServerCert{
-		Certificate: common.StringPtr(string(cert)),
-		PrivateKey:  common.StringPtr(string(key)),
-		Message:     common.StringPtr("deployed by cert-deployer"),
-	}
-	req := cdn.NewUpdateDomainConfigRequest()
-	req.Domain = common.StringPtr(asset.Domain)
-	req.Https = httpsConfig
-	_, err = client.UpdateDomainConfig(req)
-	return err
+	return nil, nil
 }

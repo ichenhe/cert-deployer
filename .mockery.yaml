@@ -1,33 +1,31 @@
 with-expecter: true
 filename: "mock_{{.InterfaceName}}.go"
-dir: "mocker"
-outpkg: "mocker"
 all: false
+
+dir: "{{.InterfaceDir}}"
+outpkg: "{{.PackageName}}"
+inpackage: True
 
 packages:
   github.com/ichenhe/cert-deployer/domain:
     config:
+      dir: "mocker"
+      outpkg: "mocker"
+      inpackage: False
       include-regex: ".*"
       exclude-regex: ".*Func"
   github.com/ichenhe/cert-deployer/cmd/app:
-    config:
-      dir: "{{.InterfaceDir}}"
-      outpkg: "{{.PackageName}}"
-      inpackage: True
     interfaces:
       assetDeployer: { }
       commandExecutor: { }
   github.com/ichenhe/cert-deployer/deploy:
-    config:
-      dir: "{{.InterfaceDir}}"
-      outpkg: "{{.PackageName}}"
-      inpackage: True
     interfaces:
       deployerCommander: { }
   github.com/ichenhe/cert-deployer/trigger/filetrigger:
-    config:
-      dir: "{{.InterfaceDir}}"
-      outpkg: "{{.PackageName}}"
-      inpackage: True
     interfaces:
       fileMonitor: { }
+  github.com/ichenhe/cert-deployer/plugins/aws:
+    interfaces:
+      acmApi: { }
+      acmCertFinder: { }
+      cloudfrontApi: { }

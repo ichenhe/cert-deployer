@@ -3,6 +3,8 @@
 package mocker
 
 import (
+	context "context"
+
 	domain "github.com/ichenhe/cert-deployer/domain"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -20,9 +22,9 @@ func (_m *MockDeployer) EXPECT() *MockDeployer_Expecter {
 	return &MockDeployer_Expecter{mock: &_m.Mock}
 }
 
-// Deploy provides a mock function with given fields: assets, cert, key
-func (_m *MockDeployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) ([]domain.Asseter, []*domain.DeployError) {
-	ret := _m.Called(assets, cert, key)
+// Deploy provides a mock function with given fields: ctx, assets, cert, key
+func (_m *MockDeployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) ([]domain.Asseter, []*domain.DeployError) {
+	ret := _m.Called(ctx, assets, cert, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Deploy")
@@ -30,19 +32,19 @@ func (_m *MockDeployer) Deploy(assets []domain.Asseter, cert []byte, key []byte)
 
 	var r0 []domain.Asseter
 	var r1 []*domain.DeployError
-	if rf, ok := ret.Get(0).(func([]domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)); ok {
-		return rf(assets, cert, key)
+	if rf, ok := ret.Get(0).(func(context.Context, []domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)); ok {
+		return rf(ctx, assets, cert, key)
 	}
-	if rf, ok := ret.Get(0).(func([]domain.Asseter, []byte, []byte) []domain.Asseter); ok {
-		r0 = rf(assets, cert, key)
+	if rf, ok := ret.Get(0).(func(context.Context, []domain.Asseter, []byte, []byte) []domain.Asseter); ok {
+		r0 = rf(ctx, assets, cert, key)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.Asseter)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func([]domain.Asseter, []byte, []byte) []*domain.DeployError); ok {
-		r1 = rf(assets, cert, key)
+	if rf, ok := ret.Get(1).(func(context.Context, []domain.Asseter, []byte, []byte) []*domain.DeployError); ok {
+		r1 = rf(ctx, assets, cert, key)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).([]*domain.DeployError)
@@ -58,16 +60,17 @@ type MockDeployer_Deploy_Call struct {
 }
 
 // Deploy is a helper method to define mock.On call
+//   - ctx context.Context
 //   - assets []domain.Asseter
 //   - cert []byte
 //   - key []byte
-func (_e *MockDeployer_Expecter) Deploy(assets interface{}, cert interface{}, key interface{}) *MockDeployer_Deploy_Call {
-	return &MockDeployer_Deploy_Call{Call: _e.mock.On("Deploy", assets, cert, key)}
+func (_e *MockDeployer_Expecter) Deploy(ctx interface{}, assets interface{}, cert interface{}, key interface{}) *MockDeployer_Deploy_Call {
+	return &MockDeployer_Deploy_Call{Call: _e.mock.On("Deploy", ctx, assets, cert, key)}
 }
 
-func (_c *MockDeployer_Deploy_Call) Run(run func(assets []domain.Asseter, cert []byte, key []byte)) *MockDeployer_Deploy_Call {
+func (_c *MockDeployer_Deploy_Call) Run(run func(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte)) *MockDeployer_Deploy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]domain.Asseter), args[1].([]byte), args[2].([]byte))
+		run(args[0].(context.Context), args[1].([]domain.Asseter), args[2].([]byte), args[3].([]byte))
 	})
 	return _c
 }
@@ -77,7 +80,7 @@ func (_c *MockDeployer_Deploy_Call) Return(deployedAssets []domain.Asseter, depl
 	return _c
 }
 
-func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func([]domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)) *MockDeployer_Deploy_Call {
+func (_c *MockDeployer_Deploy_Call) RunAndReturn(run func(context.Context, []domain.Asseter, []byte, []byte) ([]domain.Asseter, []*domain.DeployError)) *MockDeployer_Deploy_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -128,9 +131,9 @@ func (_c *MockDeployer_IsAssetTypeSupported_Call) RunAndReturn(run func(string) 
 	return _c
 }
 
-// ListApplicableAssets provides a mock function with given fields: assetType, cert
-func (_m *MockDeployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
-	ret := _m.Called(assetType, cert)
+// ListApplicableAssets provides a mock function with given fields: ctx, assetType, cert
+func (_m *MockDeployer) ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]domain.Asseter, error) {
+	ret := _m.Called(ctx, assetType, cert)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListApplicableAssets")
@@ -138,19 +141,19 @@ func (_m *MockDeployer) ListApplicableAssets(assetType string, cert []byte) ([]d
 
 	var r0 []domain.Asseter
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, []byte) ([]domain.Asseter, error)); ok {
-		return rf(assetType, cert)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte) ([]domain.Asseter, error)); ok {
+		return rf(ctx, assetType, cert)
 	}
-	if rf, ok := ret.Get(0).(func(string, []byte) []domain.Asseter); ok {
-		r0 = rf(assetType, cert)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte) []domain.Asseter); ok {
+		r0 = rf(ctx, assetType, cert)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.Asseter)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, []byte) error); ok {
-		r1 = rf(assetType, cert)
+	if rf, ok := ret.Get(1).(func(context.Context, string, []byte) error); ok {
+		r1 = rf(ctx, assetType, cert)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -164,15 +167,16 @@ type MockDeployer_ListApplicableAssets_Call struct {
 }
 
 // ListApplicableAssets is a helper method to define mock.On call
+//   - ctx context.Context
 //   - assetType string
 //   - cert []byte
-func (_e *MockDeployer_Expecter) ListApplicableAssets(assetType interface{}, cert interface{}) *MockDeployer_ListApplicableAssets_Call {
-	return &MockDeployer_ListApplicableAssets_Call{Call: _e.mock.On("ListApplicableAssets", assetType, cert)}
+func (_e *MockDeployer_Expecter) ListApplicableAssets(ctx interface{}, assetType interface{}, cert interface{}) *MockDeployer_ListApplicableAssets_Call {
+	return &MockDeployer_ListApplicableAssets_Call{Call: _e.mock.On("ListApplicableAssets", ctx, assetType, cert)}
 }
 
-func (_c *MockDeployer_ListApplicableAssets_Call) Run(run func(assetType string, cert []byte)) *MockDeployer_ListApplicableAssets_Call {
+func (_c *MockDeployer_ListApplicableAssets_Call) Run(run func(ctx context.Context, assetType string, cert []byte)) *MockDeployer_ListApplicableAssets_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte))
 	})
 	return _c
 }
@@ -182,14 +186,14 @@ func (_c *MockDeployer_ListApplicableAssets_Call) Return(_a0 []domain.Asseter, _
 	return _c
 }
 
-func (_c *MockDeployer_ListApplicableAssets_Call) RunAndReturn(run func(string, []byte) ([]domain.Asseter, error)) *MockDeployer_ListApplicableAssets_Call {
+func (_c *MockDeployer_ListApplicableAssets_Call) RunAndReturn(run func(context.Context, string, []byte) ([]domain.Asseter, error)) *MockDeployer_ListApplicableAssets_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// ListAssets provides a mock function with given fields: assetType
-func (_m *MockDeployer) ListAssets(assetType string) ([]domain.Asseter, error) {
-	ret := _m.Called(assetType)
+// ListAssets provides a mock function with given fields: ctx, assetType
+func (_m *MockDeployer) ListAssets(ctx context.Context, assetType string) ([]domain.Asseter, error) {
+	ret := _m.Called(ctx, assetType)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListAssets")
@@ -197,19 +201,19 @@ func (_m *MockDeployer) ListAssets(assetType string) ([]domain.Asseter, error) {
 
 	var r0 []domain.Asseter
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) ([]domain.Asseter, error)); ok {
-		return rf(assetType)
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]domain.Asseter, error)); ok {
+		return rf(ctx, assetType)
 	}
-	if rf, ok := ret.Get(0).(func(string) []domain.Asseter); ok {
-		r0 = rf(assetType)
+	if rf, ok := ret.Get(0).(func(context.Context, string) []domain.Asseter); ok {
+		r0 = rf(ctx, assetType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.Asseter)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(assetType)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, assetType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -223,14 +227,15 @@ type MockDeployer_ListAssets_Call struct {
 }
 
 // ListAssets is a helper method to define mock.On call
+//   - ctx context.Context
 //   - assetType string
-func (_e *MockDeployer_Expecter) ListAssets(assetType interface{}) *MockDeployer_ListAssets_Call {
-	return &MockDeployer_ListAssets_Call{Call: _e.mock.On("ListAssets", assetType)}
+func (_e *MockDeployer_Expecter) ListAssets(ctx interface{}, assetType interface{}) *MockDeployer_ListAssets_Call {
+	return &MockDeployer_ListAssets_Call{Call: _e.mock.On("ListAssets", ctx, assetType)}
 }
 
-func (_c *MockDeployer_ListAssets_Call) Run(run func(assetType string)) *MockDeployer_ListAssets_Call {
+func (_c *MockDeployer_ListAssets_Call) Run(run func(ctx context.Context, assetType string)) *MockDeployer_ListAssets_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -240,7 +245,7 @@ func (_c *MockDeployer_ListAssets_Call) Return(_a0 []domain.Asseter, _a1 error) 
 	return _c
 }
 
-func (_c *MockDeployer_ListAssets_Call) RunAndReturn(run func(string) ([]domain.Asseter, error)) *MockDeployer_ListAssets_Call {
+func (_c *MockDeployer_ListAssets_Call) RunAndReturn(run func(context.Context, string) ([]domain.Asseter, error)) *MockDeployer_ListAssets_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -34,7 +34,7 @@ func init() {
 var _ domain.Deployer = &deployer{}
 
 func newAwsDeployer(secretId string, secretKey string, logger *zap.SugaredLogger) (*deployer, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(secretId, secretKey, "")))
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-east-1"), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(secretId, secretKey, "")))
 	if err != nil {
 		return nil, err
 	}
@@ -49,15 +49,15 @@ type deployer struct {
 	logger *zap.SugaredLogger
 }
 
-func (d *deployer) ListAssets(assetType string) ([]domain.Asseter, error) {
+func (d *deployer) ListAssets(ctx context.Context, assetType string) ([]domain.Asseter, error) {
 	switch assetType {
 	case CloudFront:
-		return d.listCloudFrontAssets(context.TODO(), nil)
+		return d.listCloudFrontAssets(ctx, nil)
 	}
 	return nil, nil
 }
 
-func (d *deployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
+func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]domain.Asseter, error) {
 	certBundle, err := newCertificateBundle(cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse cert: %w", err)
@@ -65,12 +65,12 @@ func (d *deployer) ListApplicableAssets(assetType string, cert []byte) ([]domain
 
 	switch assetType {
 	case CloudFront:
-		return d.listCloudFrontAssets(context.TODO(), certBundle)
+		return d.listCloudFrontAssets(ctx, certBundle)
 	}
 	return nil, nil
 }
 
-func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
+func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
 	certBundle, err := newCertificateBundle(cert)
 	if err != nil {
 		return nil, []*domain.DeployError{{Err: err}}
@@ -96,7 +96,7 @@ func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (dep
 			if cfAsset, ok := asset.(*cloudFrontDistribution); !ok {
 				deployErrs = append(deployErrs, domain.NewDeployError(asset,
 					errors.New("can not convert asset to CloudFrontDistribution")))
-			} else if err := d.deployCloudFrontCert(context.TODO(), cloudfrontClient, acmCertFinder, cfAsset, certBundle, key); err != nil {
+			} else if err := d.deployCloudFrontCert(ctx, cloudfrontClient, acmCertFinder, cfAsset, certBundle, key); err != nil {
 				deployErrs = append(deployErrs, domain.NewDeployError(asset, err))
 			} else {
 				deployedAssets = append(deployedAssets, asset)

@@ -1,6 +1,7 @@
 package tencent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
@@ -40,8 +41,9 @@ func (d *deployer) newCredential() *common.Credential {
 	return common.NewCredential(d.secretId, d.secretKey)
 }
 
-func (d *deployer) Deploy(assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
+func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte) (deployedAssets []domain.Asseter, deployErrs []*domain.DeployError) {
 	for _, item := range assets {
+		// TODO: check ctx canceled
 		info := item.GetBaseInfo()
 		if info.Provider != Provider {
 			d.logger.Warnf("not a tencent asset, ignore: %v", item)

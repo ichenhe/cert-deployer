@@ -123,7 +123,7 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d, _ := newAwsDeployer("", "", zap.NewNop().Sugar())
-			err := d.deployCloudFrontCert(context.TODO(), tt.args.cfApi(t), tt.args.certFinder(t), deployAsset, certBundle, make([]byte, 0))
+			err := d.deployCloudFrontCert(context.Background(), tt.args.cfApi(t), tt.args.certFinder(t), deployAsset, certBundle, make([]byte, 0))
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
 	"sync"
@@ -14,10 +15,10 @@ type deployerCommander interface {
 	IsAssetTypeSupported(assetType string) bool
 
 	// DeployToAsset deploys the certificate to a specific asset using the inner deployer.
-	DeployToAsset(assetType string, assetId string, cert []byte, key []byte) error
+	DeployToAsset(ctx context.Context, assetType string, assetId string, cert []byte, key []byte) error
 
 	// DeployToAssetType deploys the certificate to all assets with given type.
-	DeployToAssetType(assetType string, cert, key []byte, onAssetsAcquired func(assets []domain.Asseter), onDeployResult func(asset domain.Asseter, err error)) error
+	DeployToAssetType(ctx context.Context, assetType string, cert, key []byte, onAssetsAcquired func(assets []domain.Asseter), onDeployResult func(asset domain.Asseter, err error)) error
 }
 
 var _ deployerCommander = &cachedDeployerCommander{}
@@ -44,8 +45,8 @@ func (c *cachedDeployerCommander) IsAssetTypeSupported(assetType string) bool {
 	return c.deployer.IsAssetTypeSupported(assetType)
 }
 
-func (c *cachedDeployerCommander) refreshCache(assetType string) error {
-	assets, err := c.deployer.ListAssets(assetType)
+func (c *cachedDeployerCommander) refreshCache(ctx context.Context, assetType string) error {
+	assets, err := c.deployer.ListAssets(ctx, assetType)
 	if err != nil {
 		return fmt.Errorf("failed to list assests: %w", err)
 	}
@@ -73,11 +74,11 @@ func (c *cachedDeployerCommander) addToCache(assetType string, assets []domain.A
 
 // DeployToAssetType deploys the cert to all assets with given type.
 // This function does not use the cache but updates the cache with assets it acquired.
-func (c *cachedDeployerCommander) DeployToAssetType(assetType string, cert, key []byte,
+func (c *cachedDeployerCommander) DeployToAssetType(ctx context.Context, assetType string, cert, key []byte,
 	onAssetsAcquired func(assets []domain.Asseter),
 	onDeployResult func(asset domain.Asseter, err error)) error {
 
-	assets, err := c.deployer.ListApplicableAssets(assetType, cert)
+	assets, err := c.deployer.ListApplicableAssets(ctx, assetType, cert)
 	if err != nil {
 		return fmt.Errorf("failed to list assests: %w", err)
 	}
@@ -89,7 +90,7 @@ func (c *cachedDeployerCommander) DeployToAssetType(assetType string, cert, key 
 		onAssetsAcquired(assets)
 	}
 	for _, asset := range assets {
-		_, errors := c.deployer.Deploy([]domain.Asseter{asset}, cert, key)
+		_, errors := c.deployer.Deploy(ctx, []domain.Asseter{asset}, cert, key)
 		var err error
 		if errors != nil && len(errors) > 0 {
 			err = errors[0]
@@ -101,14 +102,14 @@ func (c *cachedDeployerCommander) DeployToAssetType(assetType string, cert, key 
 	return nil
 }
 
-func (c *cachedDeployerCommander) retrieveAsset(assetType string, assetId string) (domain.Asseter, error) {
+func (c *cachedDeployerCommander) retrieveAsset(ctx context.Context, assetType string, assetId string) (domain.Asseter, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if asset, ex := c.cachedAssets[assetId]; ex {
 		return asset, nil
 	}
 	// asset not found in cache, refresh
-	if err := c.refreshCache(assetType); err != nil {
+	if err := c.refreshCache(ctx, assetType); err != nil {
 		return nil, err
 	}
 	if asset, ex := c.cachedAssets[assetId]; ex {
@@ -119,13 +120,13 @@ func (c *cachedDeployerCommander) retrieveAsset(assetType string, assetId string
 }
 
 // DeployToAsset deploys the cert to asset with given id.
-func (c *cachedDeployerCommander) DeployToAsset(assetType string, assetId string, cert []byte, key []byte) error {
-	asset, err := c.retrieveAsset(assetType, assetId)
+func (c *cachedDeployerCommander) DeployToAsset(ctx context.Context, assetType string, assetId string, cert []byte, key []byte) error {
+	asset, err := c.retrieveAsset(ctx, assetType, assetId)
 	if err != nil {
 		return err
 	}
 
-	_, errors := c.deployer.Deploy([]domain.Asseter{asset}, cert, key)
+	_, errors := c.deployer.Deploy(ctx, []domain.Asseter{asset}, cert, key)
 	if errors != nil && len(errors) > 0 {
 		return errors[0]
 	}

@@ -1,6 +1,7 @@
 package filetrigger
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"fmt"
@@ -136,7 +137,7 @@ func (t *FileTrigger) fileLoop(errors chan error, events chan fsnotify.Event, fi
 			t.fileHash = currentHash
 		}
 		for _, deployment := range t.deployments {
-			if err := t.deploymentExecutor.ExecuteDeployment(deployment); err != nil {
+			if err := t.deploymentExecutor.ExecuteDeployment(context.Background(), deployment); err != nil {
 				t.logger.Warnf("failed to execute deployment '%s': %v", deployment.Name, err)
 			} else {
 				t.logger.Infof("deployment '%s' completed", deployment.Name)

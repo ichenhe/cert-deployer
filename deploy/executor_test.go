@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/mocker"
@@ -41,7 +42,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 				deployerCommander: func() deployerCommander {
 					c := NewMockdeployerCommander(t)
 					c.EXPECT().IsAssetTypeSupported("cdn").Return(true)
-					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(2)
+					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(2)
 					return c
 				}(),
 			},
@@ -62,7 +63,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 				deployerCommander: func() deployerCommander {
 					c := NewMockdeployerCommander(t)
 					c.EXPECT().IsAssetTypeSupported("cdn").Return(true)
-					c.EXPECT().DeployToAssetType(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+					c.EXPECT().DeployToAssetType(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 					return c
 				}(),
 			},
@@ -83,7 +84,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 				deployerCommander: func() deployerCommander {
 					c := NewMockdeployerCommander(t)
 					c.EXPECT().IsAssetTypeSupported("cdn").Return(true)
-					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err")).Times(2)
+					c.EXPECT().DeployToAsset(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err")).Times(2)
 					return c
 				}(),
 			},
@@ -106,7 +107,7 @@ func Test_defaultDeploymentExecutor_executeDeployment(t *testing.T) {
 			e.deployerCommanderFactory = func(deployer domain.Deployer) deployerCommander {
 				return tt.fields.deployerCommander
 			}
-			if err := e.ExecuteDeployment(tt.args.deployment); (err != nil) != tt.wantErr {
+			if err := e.ExecuteDeployment(context.Background(), tt.args.deployment); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteDeployment() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

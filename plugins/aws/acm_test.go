@@ -97,7 +97,7 @@ func Test_cachedAcmCertFinder_FindCertInACM(t *testing.T) {
 			finder := newCachedAcmCertFinder(tt.api(t))
 
 			for range tt.queryTimes {
-				gotArn, err := finder.FindCertInACM(context.TODO(), targetCertBundle)
+				gotArn, err := finder.FindCertInACM(context.Background(), targetCertBundle)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("FindCertInACM() error = %v, wantErr %v", err, tt.wantErr)
 					return

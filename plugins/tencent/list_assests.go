@@ -1,6 +1,7 @@
 package tencent
 
 import (
+	"context"
 	"encoding/base64"
 	"github.com/ichenhe/cert-deployer/domain"
 	cdn "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn/v20180606"
@@ -8,23 +9,23 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 )
 
-func (d *deployer) ListAssets(assetType string) ([]domain.Asseter, error) {
+func (d *deployer) ListAssets(ctx context.Context, assetType string) ([]domain.Asseter, error) {
 	switch assetType {
 	case CDN:
-		return d.listCDNAssets()
+		return d.listCDNAssets(ctx)
 	}
 	return nil, nil
 }
 
-func (d *deployer) ListApplicableAssets(assetType string, cert []byte) ([]domain.Asseter, error) {
+func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]domain.Asseter, error) {
 	switch assetType {
 	case CDN:
-		return d.listApplicableCDNAssets(cert)
+		return d.listApplicableCDNAssets(ctx, cert)
 	}
 	return nil, nil
 }
 
-func (d *deployer) listCDNAssets() ([]domain.Asseter, error) {
+func (d *deployer) listCDNAssets(ctx context.Context) ([]domain.Asseter, error) {
 	client, err := cdn.NewClient(d.newCredential(), "", profile.NewClientProfile())
 	if err != nil {
 		return nil, err
@@ -35,6 +36,11 @@ func (d *deployer) listCDNAssets() ([]domain.Asseter, error) {
 	}
 	assets := make([]domain.Asseter, 0, *resp.Response.TotalNumber)
 	for _, domainName := range resp.Response.Domains {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		assets = append(assets, &CdnAsset{
 			Asset: domain.Asset{
 				Id:       *domainName.ResourceId,
@@ -50,7 +56,7 @@ func (d *deployer) listCDNAssets() ([]domain.Asseter, error) {
 	return assets, nil
 }
 
-func (d *deployer) listApplicableCDNAssets(cert []byte) ([]domain.Asseter, error) {
+func (d *deployer) listApplicableCDNAssets(ctx context.Context, cert []byte) ([]domain.Asseter, error) {
 	client, err := cdn.NewClient(d.newCredential(), "", profile.NewClientProfile())
 	if err != nil {
 		return nil, err
@@ -63,7 +69,7 @@ func (d *deployer) listApplicableCDNAssets(cert []byte) ([]domain.Asseter, error
 		return nil, err
 	}
 
-	allCDNs, err := d.listCDNAssets()
+	allCDNs, err := d.listCDNAssets(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -105,7 +105,7 @@ func TestFileTrigger_StartMonitoring(t *testing.T) {
 			monitor.EXPECT().Add(filepath.Dir(tt.args.file)).Return(nil).Once()
 
 			if tt.args.triggeredTimes > 0 {
-				executor.EXPECT().ExecuteDeployment(mock.Anything).Return(nil).Times(tt.args.triggeredTimes * len(deployments))
+				executor.EXPECT().ExecuteDeployment(mock.Anything, mock.Anything).Return(nil).Times(tt.args.triggeredTimes * len(deployments))
 			}
 
 			// start

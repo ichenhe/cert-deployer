@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"github.com/ichenhe/cert-deployer/domain"
 	"github.com/ichenhe/cert-deployer/registry"
@@ -59,7 +60,7 @@ func (n *defaultDeploymentExecutor) getCommander(providerId string) (deployerCom
 	}
 }
 
-func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployment) error {
+func (n *defaultDeploymentExecutor) ExecuteDeployment(ctx context.Context, deployment domain.Deployment) error {
 	certData, err := n.fileReader.ReadFile(deployment.Cert)
 	if err != nil {
 		return fmt.Errorf("failed to read public cert: %w", err)
@@ -81,7 +82,7 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployme
 
 		if asset.Id != "" {
 			n.logger.Debugf("deploying to %s asset '%s'...", asset.Type, asset.Id)
-			if err = commander.DeployToAsset(asset.Type, asset.Id, certData, keyData); err != nil {
+			if err = commander.DeployToAsset(ctx, asset.Type, asset.Id, certData, keyData); err != nil {
 				n.logger.Warnf("failed to deploy to %s asset '%s': %v", asset.Type, asset.Id, err)
 				// continue to deploy other assets, won't be considered as a fail.
 			} else {
@@ -101,7 +102,7 @@ func (n *defaultDeploymentExecutor) ExecuteDeployment(deployment domain.Deployme
 					n.logger.Warnf("failed to deploy to %s asset '%s': %v", info.Type, info.Id, err)
 				}
 			}
-			if err = commander.DeployToAssetType(asset.Type, certData, keyData, onAssetsAcquired, onDeployResult); err != nil {
+			if err = commander.DeployToAssetType(ctx, asset.Type, certData, keyData, onAssetsAcquired, onDeployResult); err != nil {
 				n.logger.Warnf("failed to deploy to all %s assets: %v", asset.Type, err)
 				// continue to deploy other assets, won't be considered as a fail.
 			}

@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"github.com/ichenhe/cert-deployer/domain"
 	"go.uber.org/zap"
 )
@@ -54,7 +55,7 @@ func (u *UnionDeployer) ListAssets(assetType string) ([]domain.Asseter, *domain.
 	errs := make([]error, 0)
 	for _, v := range u.deployers {
 		for _, searcher := range v {
-			if l, e := searcher.ListAssets(assetType); e != nil {
+			if l, e := searcher.ListAssets(context.Background(), assetType); e != nil {
 				errs = append(errs, e)
 			} else {
 				r = append(r, l...)
@@ -74,7 +75,7 @@ func (u *UnionDeployer) ListApplicableAssets(assetType string, cert []byte) ([]d
 	errs := make([]error, 0)
 	for _, v := range u.deployers {
 		for _, searcher := range v {
-			if l, e := searcher.ListApplicableAssets(assetType, cert); e != nil {
+			if l, e := searcher.ListApplicableAssets(context.Background(), assetType, cert); e != nil {
 				errs = append(errs, e)
 			} else {
 				r = append(r, l...)
@@ -89,7 +90,7 @@ func (u *UnionDeployer) Deploy(assets []domain.Asseter, cert []byte,
 	key []byte) (deployedAsseters []domain.Asseter, hasError bool) {
 	for _, assetItem := range assets {
 		for _, deployer := range u.deployers[assetItem.GetBaseInfo().Provider] {
-			deployed, deployErrs := deployer.Deploy([]domain.Asseter{assetItem}, cert, key)
+			deployed, deployErrs := deployer.Deploy(context.Background(), []domain.Asseter{assetItem}, cert, key)
 			if deployed != nil {
 				deployedAsseters = append(deployedAsseters, deployed...)
 			}

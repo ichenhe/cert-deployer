@@ -1,29 +1,32 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"go.uber.org/zap"
 	"reflect"
 )
 
 type Deployer interface {
+	// IsAssetTypeSupported checks whether the given asset type is supported by the deployer.
+	//
+	// This function must always return the consistent result for the same input.
 	IsAssetTypeSupported(assetType string) bool
 
 	// ListAssets fetches all assets that match the given type.
 	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
-	ListAssets(assetType string) ([]Asseter, error)
+	ListAssets(ctx context.Context, assetType string) ([]Asseter, error)
 
 	// ListApplicableAssets fetch all assets that match the given type and cert.
 	// The assetType should be one of constants 'asset.Type*', e.g. asset.TypeCdn.
-	ListApplicableAssets(assetType string, cert []byte) ([]Asseter, error)
+	ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]Asseter, error)
 
 	// Deploy the given pem cert to the all assets.
 	//
 	// Returns assets that were successfully deployed and errors. Please note that there is no
-	// guarantee that len(deployedAsseters)+len(deployErrs)=len(assets), because some minor
+	// guarantee that len(deployedAssets)+len(deployErrs)=len(assets), because some minor
 	// problems do not count as errors, such as provider mismatch.
-	Deploy(assets []Asseter, cert []byte, key []byte) (deployedAssets []Asseter,
-		deployErrs []*DeployError)
+	Deploy(ctx context.Context, assets []Asseter, cert []byte, key []byte) (deployedAssets []Asseter, deployErrs []*DeployError)
 }
 
 type DeployerFactory interface {
@@ -116,5 +119,5 @@ type DeploymentExecutor interface {
 	// If a deployer is created, it is considered a successful execution, even if no assets were
 	// deployed successfully. Because one deployment may contain many assets, it's confused to say
 	// whether it is success.
-	ExecuteDeployment(deployment Deployment) error
+	ExecuteDeployment(ctx context.Context, deployment Deployment) error
 }

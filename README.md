@@ -10,6 +10,11 @@ This is not an ACME client and is recommended to be used with an ACME client to 
 
 ## Supported Cloud Provider
 
+- Alibaba Cloud (`AlibabaCloud`)
+  - CDN (`cdn`)
+- AWS (`AWS`)
+  - CloudFront (`cloud_front`)
+  
 - Tencent Cloud (`TencentCloud`)
   - CDN (`cdn`)
 
@@ -22,7 +27,7 @@ This is not an ACME client and is recommended to be used with an ACME client to 
 --secret-key "yyyyyyyyyy" \
 --cert "/path/to/fullchain.pem" \
 --key "/path/to/privkey.pem" \
---type cdn
+--type cdn[README.md](README.md)
 ```
 
 The value of `provider` / `type` must be in the support list.

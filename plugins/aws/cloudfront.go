@@ -25,7 +25,7 @@ type cloudfrontApi interface {
 // Hostname checking is ignored if the certBundle is nil.
 //
 // Distributions without aliases always match no certificates.
-func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle *certificateBundle) ([]domain.Asseter, error) {
+func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle domain.CertificateBundle) ([]domain.Asseter, error) {
 	client := cloudfront.NewFromConfig(d.cfg)
 
 	// extractName generates a name for the DistributionSummary
@@ -87,7 +87,7 @@ func (d *deployer) listCloudFrontAssets(ctx context.Context, certBundle *certifi
 // imported again, even if the certificate is not managed by cert-deployer.
 //
 // The previous cert will be deleted from ACM if it is unused anymore and managed by cert-deployer.
-func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi, acmManager acmManager, asset *cloudFrontDistribution, cert *certificateBundle, key []byte) error {
+func (d *deployer) deployCloudFrontCert(ctx context.Context, cfApi cloudfrontApi, acmManager acmManager, asset *cloudFrontDistribution, cert domain.CertificateBundle, key []byte) error {
 	// get current cloud front config
 	result, err := cfApi.GetDistributionConfig(ctx, &cloudfront.GetDistributionConfigInput{
 		Id: &asset.Id,

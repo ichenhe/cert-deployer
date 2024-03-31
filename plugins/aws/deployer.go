@@ -58,7 +58,7 @@ func (d *deployer) ListAssets(ctx context.Context, assetType string) ([]domain.A
 }
 
 func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, cert []byte) ([]domain.Asseter, error) {
-	certBundle, err := newCertificateBundle(cert)
+	certBundle, err := domain.NewCertificateBundle(cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse cert: %w", err)
 	}
@@ -71,7 +71,7 @@ func (d *deployer) ListApplicableAssets(ctx context.Context, assetType string, c
 }
 
 func (d *deployer) Deploy(ctx context.Context, assets []domain.Asseter, cert []byte, key []byte, callback *domain.DeployCallback) error {
-	certBundle, err := newCertificateBundle(cert)
+	certBundle, err := domain.NewCertificateBundle(cert)
 	if err != nil {
 		return err
 	}

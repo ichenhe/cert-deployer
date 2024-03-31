@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 )
 
 // CertificateBundle represents a bundle consist of a parsed public cert and rest part of the chain.
@@ -19,6 +20,9 @@ type CertificateBundle interface {
 
 	// GetRaw returns the pem encoded public cert, including the chain.
 	GetRaw() []byte
+
+	// GetRawChain returns the pem encoded chain, not including the cert itself.
+	GetRawChain() []byte
 
 	// GetDomains returns all DNS names in the cert.
 	GetDomains() []string
@@ -41,6 +45,10 @@ type CertificateBundle interface {
 	// leading zeros.
 	// e.g. 9f7aa7f3f62a
 	GetSerialNumberHexString() string
+
+	NotBefore() *time.Time
+
+	NotAfter() *time.Time
 }
 
 // NewCertificateBundle creates CertificateBundle based on given pem encoded full chain.
@@ -57,14 +65,22 @@ func NewCertificateBundle(fullChain []byte) (CertificateBundle, error) {
 	return &defaultCertificateBundle{
 		certBlock: cert,
 		cert:      certificate,
-		ChainRaw:  chainRaw,
+		chainRaw:  chainRaw,
 	}, nil
 }
 
 type defaultCertificateBundle struct {
 	certBlock *pem.Block
 	cert      *x509.Certificate // parsed client cert
-	ChainRaw  []byte            // pem encoded cert chain, exclude the client cert itself
+	chainRaw  []byte            // pem encoded cert chain, exclude the client cert itself
+}
+
+func (b *defaultCertificateBundle) NotBefore() *time.Time {
+	return &b.cert.NotBefore
+}
+
+func (b *defaultCertificateBundle) NotAfter() *time.Time {
+	return &b.cert.NotAfter
 }
 
 func (b *defaultCertificateBundle) GetDomains() []string {
@@ -76,7 +92,11 @@ func (b *defaultCertificateBundle) GetRawCert() []byte {
 }
 
 func (b *defaultCertificateBundle) GetRaw() []byte {
-	return bytes.Join([][]byte{b.GetRawCert(), b.ChainRaw}, []byte{})
+	return bytes.Join([][]byte{b.GetRawCert(), b.chainRaw}, []byte{})
+}
+
+func (b *defaultCertificateBundle) GetRawChain() []byte {
+	return b.chainRaw
 }
 
 func (b *defaultCertificateBundle) VerifySerialNumber(serialNumber string) bool {

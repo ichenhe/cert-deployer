@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/ichenhe/cert-deployer/domain"
 )
 
 var _ acmApi = &acm.Client{}
@@ -32,7 +33,7 @@ type acmManager interface {
 	// Returns certification's ARN (Amazon Resource Name) and the source (whether from cache) if
 	// found, otherwise "".
 	// Returning "",false,nil means no errors but not found.
-	FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, fromCache bool, err error)
+	FindCertInACM(ctx context.Context, certBundle domain.CertificateBundle) (arn string, fromCache bool, err error)
 
 	// DeleteManagedCertFromAcmIfUnused deletes a cert from ACM.
 	//
@@ -42,7 +43,7 @@ type acmManager interface {
 	//   - Managed by the cert-deployer (has acmManagedTagKey tag).
 	DeleteManagedCertFromAcmIfUnused(ctx context.Context, certArn *string) (deleted bool, err error)
 
-	ImportCertificate(ctx context.Context, certBundle *certificateBundle, key []byte) (arn string, err error)
+	ImportCertificate(ctx context.Context, certBundle domain.CertificateBundle, key []byte) (arn string, err error)
 
 	RemoveCertFromCache(arn string)
 }
@@ -73,11 +74,11 @@ type cachedAcmManager struct {
 	cachedArnToSn     map[string]string
 }
 
-func (f *cachedAcmManager) ImportCertificate(ctx context.Context, certBundle *certificateBundle, key []byte) (arn string, err error) {
+func (f *cachedAcmManager) ImportCertificate(ctx context.Context, certBundle domain.CertificateBundle, key []byte) (arn string, err error) {
 	if result, err := f.api.ImportCertificate(ctx, &acm.ImportCertificateInput{
-		Certificate:      certBundle.ClientCertRaw(),
+		Certificate:      certBundle.GetRawCert(),
 		PrivateKey:       key,
-		CertificateChain: certBundle.ChainRaw,
+		CertificateChain: certBundle.GetRawChain(),
 		Tags:             []acmTypes.Tag{{Key: aws.String(acmManagedTagKey), Value: aws.String(acmManagedTagValue)}},
 	}); err != nil {
 		return "", err
@@ -141,7 +142,7 @@ func (f *cachedAcmManager) DeleteManagedCertFromAcmIfUnused(ctx context.Context,
 	return
 }
 
-func (f *cachedAcmManager) FindCertInACM(ctx context.Context, certBundle *certificateBundle) (arn string, fromCache bool, err error) {
+func (f *cachedAcmManager) FindCertInACM(ctx context.Context, certBundle domain.CertificateBundle) (arn string, fromCache bool, err error) {
 	// check cached result first
 	if arn, ex := f.cachedSnToArn[certBundle.GetSerialNumberHexString()]; ex {
 		return arn, true, nil
@@ -149,7 +150,7 @@ func (f *cachedAcmManager) FindCertInACM(ctx context.Context, certBundle *certif
 
 	verifyIsTheSameCert := func(summary *acmTypes.CertificateSummary) (bool, error) {
 		// quick check before request for details
-		if !summary.NotBefore.Equal(certBundle.Cert.NotBefore) || !summary.NotAfter.Equal(certBundle.Cert.NotAfter) {
+		if !summary.NotBefore.Equal(*certBundle.NotBefore()) || !summary.NotAfter.Equal(*certBundle.NotAfter()) {
 			return false, nil
 		}
 		if !certBundle.ContainsAllDomains(summary.SubjectAlternativeNameSummaries) {

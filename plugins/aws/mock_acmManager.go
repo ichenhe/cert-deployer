@@ -5,6 +5,7 @@ package aws
 import (
 	context "context"
 
+	domain "github.com/ichenhe/cert-deployer/domain"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -79,7 +80,7 @@ func (_c *MockacmManager_DeleteManagedCertFromAcmIfUnused_Call) RunAndReturn(run
 }
 
 // FindCertInACM provides a mock function with given fields: ctx, certBundle
-func (_m *MockacmManager) FindCertInACM(ctx context.Context, certBundle *certificateBundle) (string, bool, error) {
+func (_m *MockacmManager) FindCertInACM(ctx context.Context, certBundle domain.CertificateBundle) (string, bool, error) {
 	ret := _m.Called(ctx, certBundle)
 
 	if len(ret) == 0 {
@@ -89,22 +90,22 @@ func (_m *MockacmManager) FindCertInACM(ctx context.Context, certBundle *certifi
 	var r0 string
 	var r1 bool
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, *certificateBundle) (string, bool, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CertificateBundle) (string, bool, error)); ok {
 		return rf(ctx, certBundle)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *certificateBundle) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CertificateBundle) string); ok {
 		r0 = rf(ctx, certBundle)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *certificateBundle) bool); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, domain.CertificateBundle) bool); ok {
 		r1 = rf(ctx, certBundle)
 	} else {
 		r1 = ret.Get(1).(bool)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, *certificateBundle) error); ok {
+	if rf, ok := ret.Get(2).(func(context.Context, domain.CertificateBundle) error); ok {
 		r2 = rf(ctx, certBundle)
 	} else {
 		r2 = ret.Error(2)
@@ -120,14 +121,14 @@ type MockacmManager_FindCertInACM_Call struct {
 
 // FindCertInACM is a helper method to define mock.On call
 //   - ctx context.Context
-//   - certBundle *certificateBundle
+//   - certBundle domain.CertificateBundle
 func (_e *MockacmManager_Expecter) FindCertInACM(ctx interface{}, certBundle interface{}) *MockacmManager_FindCertInACM_Call {
 	return &MockacmManager_FindCertInACM_Call{Call: _e.mock.On("FindCertInACM", ctx, certBundle)}
 }
 
-func (_c *MockacmManager_FindCertInACM_Call) Run(run func(ctx context.Context, certBundle *certificateBundle)) *MockacmManager_FindCertInACM_Call {
+func (_c *MockacmManager_FindCertInACM_Call) Run(run func(ctx context.Context, certBundle domain.CertificateBundle)) *MockacmManager_FindCertInACM_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*certificateBundle))
+		run(args[0].(context.Context), args[1].(domain.CertificateBundle))
 	})
 	return _c
 }
@@ -137,13 +138,13 @@ func (_c *MockacmManager_FindCertInACM_Call) Return(arn string, fromCache bool, 
 	return _c
 }
 
-func (_c *MockacmManager_FindCertInACM_Call) RunAndReturn(run func(context.Context, *certificateBundle) (string, bool, error)) *MockacmManager_FindCertInACM_Call {
+func (_c *MockacmManager_FindCertInACM_Call) RunAndReturn(run func(context.Context, domain.CertificateBundle) (string, bool, error)) *MockacmManager_FindCertInACM_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ImportCertificate provides a mock function with given fields: ctx, certBundle, key
-func (_m *MockacmManager) ImportCertificate(ctx context.Context, certBundle *certificateBundle, key []byte) (string, error) {
+func (_m *MockacmManager) ImportCertificate(ctx context.Context, certBundle domain.CertificateBundle, key []byte) (string, error) {
 	ret := _m.Called(ctx, certBundle, key)
 
 	if len(ret) == 0 {
@@ -152,16 +153,16 @@ func (_m *MockacmManager) ImportCertificate(ctx context.Context, certBundle *cer
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *certificateBundle, []byte) (string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CertificateBundle, []byte) (string, error)); ok {
 		return rf(ctx, certBundle, key)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *certificateBundle, []byte) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CertificateBundle, []byte) string); ok {
 		r0 = rf(ctx, certBundle, key)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *certificateBundle, []byte) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, domain.CertificateBundle, []byte) error); ok {
 		r1 = rf(ctx, certBundle, key)
 	} else {
 		r1 = ret.Error(1)
@@ -177,15 +178,15 @@ type MockacmManager_ImportCertificate_Call struct {
 
 // ImportCertificate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - certBundle *certificateBundle
+//   - certBundle domain.CertificateBundle
 //   - key []byte
 func (_e *MockacmManager_Expecter) ImportCertificate(ctx interface{}, certBundle interface{}, key interface{}) *MockacmManager_ImportCertificate_Call {
 	return &MockacmManager_ImportCertificate_Call{Call: _e.mock.On("ImportCertificate", ctx, certBundle, key)}
 }
 
-func (_c *MockacmManager_ImportCertificate_Call) Run(run func(ctx context.Context, certBundle *certificateBundle, key []byte)) *MockacmManager_ImportCertificate_Call {
+func (_c *MockacmManager_ImportCertificate_Call) Run(run func(ctx context.Context, certBundle domain.CertificateBundle, key []byte)) *MockacmManager_ImportCertificate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*certificateBundle), args[2].([]byte))
+		run(args[0].(context.Context), args[1].(domain.CertificateBundle), args[2].([]byte))
 	})
 	return _c
 }
@@ -195,7 +196,7 @@ func (_c *MockacmManager_ImportCertificate_Call) Return(arn string, err error) *
 	return _c
 }
 
-func (_c *MockacmManager_ImportCertificate_Call) RunAndReturn(run func(context.Context, *certificateBundle, []byte) (string, error)) *MockacmManager_ImportCertificate_Call {
+func (_c *MockacmManager_ImportCertificate_Call) RunAndReturn(run func(context.Context, domain.CertificateBundle, []byte) (string, error)) *MockacmManager_ImportCertificate_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -6,13 +6,25 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/ichenhe/cert-deployer/domain"
+	"github.com/ichenhe/cert-deployer/mocker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
+// full_chain.pem for testing.
+//   - Name: *.chenhe.me
+//   - Alternative name: [*.chenhe.me, chenhe.me]
+//   - Serial number: 9f7aa7f3f62a992d9364d7f5f47b52b1
+//   - Algorithm: SHA384withECDSA
+//
+//go:embed test_fullchain.pem
+var testCert []byte
+
 func Test_cachedAcmManager_FindCertInACM(t *testing.T) {
-	targetCertBundle, _ := newCertificateBundle(testCert)
+	mocker.NewMockCertificateBundle(t)
+	targetCertBundle, _ := domain.NewCertificateBundle(testCert)
 	tests := []struct {
 		name          string
 		queryTimes    int
@@ -30,8 +42,8 @@ func Test_cachedAcmManager_FindCertInACM(t *testing.T) {
 					CertificateSummaryList: []acmTypes.CertificateSummary{
 						{
 							CertificateArn: aws.String("arn1"),
-							NotBefore:      &targetCertBundle.Cert.NotBefore,
-							NotAfter:       &targetCertBundle.Cert.NotAfter,
+							NotBefore:      targetCertBundle.NotBefore(),
+							NotAfter:       targetCertBundle.NotAfter(),
 						},
 					},
 				}
@@ -60,8 +72,8 @@ func Test_cachedAcmManager_FindCertInACM(t *testing.T) {
 					CertificateSummaryList: []acmTypes.CertificateSummary{
 						{
 							CertificateArn: aws.String("arn1"),
-							NotBefore:      &targetCertBundle.Cert.NotBefore,
-							NotAfter:       &targetCertBundle.Cert.NotAfter,
+							NotBefore:      targetCertBundle.NotBefore(),
+							NotAfter:       targetCertBundle.NotAfter(),
 						},
 					},
 				}

@@ -20,7 +20,7 @@ func Test_deployer_deployCloudFrontCert(t *testing.T) {
 	}
 
 	// fixed args
-	certBundle, _ := newCertificateBundle(testCert)
+	certBundle, _ := domain.NewCertificateBundle(testCert)
 	deployAsset := &cloudFrontDistribution{Asset: domain.Asset{Id: "id"}}
 
 	// helpers

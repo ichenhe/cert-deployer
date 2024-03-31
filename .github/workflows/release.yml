@@ -37,7 +37,7 @@ jobs:
           if-no-files-found: error
 
       - name: releases-action
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           # https://github.com/actions/upload-release-asset
           token: ${{ github.token }}

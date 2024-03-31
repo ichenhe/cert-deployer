@@ -23,3 +23,8 @@ updates:
       golang-x:
         patterns:
           - "golang.org/x/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

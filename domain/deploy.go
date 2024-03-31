@@ -43,6 +43,24 @@ type DeployerFactory interface {
 	NewDeployer(logger *zap.SugaredLogger, cloudProvider CloudProvider) (Deployer, error)
 }
 
+// DeployerHelper provides some useful functions for deployer implementation.
+type DeployerHelper struct {
+}
+
+// OnDeployResult calls the callback function if it is not nil.
+func (d *DeployerHelper) OnDeployResult(cb *DeployCallback, asset Asseter, err error) {
+	if cb != nil && cb.ResultCallback != nil {
+		cb.ResultCallback(asset, err)
+	}
+}
+
+// OnPreDeploy calls the callback function if it is not nil.
+func (d *DeployerHelper) OnPreDeploy(cb *DeployCallback, asset Asseter) {
+	if cb != nil && cb.PreExecuteCallback != nil {
+		cb.PreExecuteCallback(asset)
+	}
+}
+
 type Options map[string]interface{}
 
 const OptionsKeyLogger = "cert-deployer.logger"

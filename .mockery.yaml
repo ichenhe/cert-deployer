@@ -1,5 +1,5 @@
 with-expecter: true
-filename: "mock_{{.InterfaceName}}.go"
+filename: "mock_{{.InterfaceName}}_test.go"
 all: false
 
 dir: "{{.InterfaceDir}}"
@@ -9,6 +9,7 @@ inpackage: True
 packages:
   github.com/ichenhe/cert-deployer/domain:
     config:
+      filename: "mock_{{.InterfaceName}}.go"
       dir: "mocker"
       outpkg: "mocker"
       inpackage: False

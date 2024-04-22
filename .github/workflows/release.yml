@@ -30,7 +30,7 @@ jobs:
         run: go test ./...
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3.0.0
+        uses: actions/upload-artifact@v4.3.2
         with:
           name: ${{ steps.tag_out.outputs.tag }}
           path: bin

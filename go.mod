@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.890
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.890
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	go.uber.org/zap v1.27.0
 )
 

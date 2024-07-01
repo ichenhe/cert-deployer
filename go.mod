@@ -16,8 +16,8 @@ require (
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/v2 v2.1.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.890
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.890
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.953
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.953
 	github.com/urfave/cli/v2 v2.27.1
 	go.uber.org/zap v1.27.0
 )

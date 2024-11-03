@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.40.3
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/knadh/koanf/parsers/yaml v0.1.0
-	github.com/knadh/koanf/providers/file v0.1.0
+	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/stretchr/testify v1.9.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.0.1034
@@ -59,7 +59,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
